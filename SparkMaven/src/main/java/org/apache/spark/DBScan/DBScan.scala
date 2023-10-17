@@ -1,12 +1,9 @@
 package org.apache.spark.DBScan
 
-
 import org.apache.spark.DBScan.DBScanLabeledPoint.Flag
 import org.apache.spark.rdd.RDD
 import org.apache.spark.internal.Logging
 import org.apache.spark.mllib.linalg.Vector
-//import breeze.linalg.{DenseVector, Vector} //可视化库
-//import breeze.plot._
 
 object DBScan {
   /*
@@ -23,42 +20,6 @@ object DBScan {
   *
   *
   * */
-
-//  def visualizeClusterResults(clusteredData: RDD[(Int, Vector)]): Unit = {
-//    // 提取簇标签和数据点坐标
-//    val (clusterLabels, dataPoints) = clusteredData.collect().map { case (label, vector) =>
-//      (label, (vector(0), vector(1)))
-//    }.unzip
-//
-//    // 创建一个颜色映射，用于区分不同的簇
-//    val uniqueLabels = clusterLabels.distinct
-//    val colors = uniqueLabels.indices.map(i => i % 10) // 颜色选择可以根据需要自定义
-//
-//    // 创建一个新图表
-//    val f = Figure()
-//
-//    // 创建一个散点图
-//    val scatterPlot = f.subplot(0)
-//    scatterPlot.title = "DBScan Clustering Result"
-//    scatterPlot.xlabel = "X-axis"
-//    scatterPlot.ylabel = "Y-axis"
-//
-//    for (label <- uniqueLabels) {
-//      val x = dataPoints.zip(clusterLabels).collect {
-//        case ((x, y), `label`) => x
-//      }.map(_.asInstanceOf[Double])
-//
-//      val y = dataPoints.zip(clusterLabels).collect {
-//        case ((x, y), `label`) => y
-//      }.map(_.asInstanceOf[Double])
-//
-//      scatterPlot += plot(x, y, '.', colors(label))
-//    }
-//
-//    // 显示图表
-//    f.refresh()
-//    f.visible = true
-//  }
 
   def train(data: RDD[Vector],
             eps: Double,
