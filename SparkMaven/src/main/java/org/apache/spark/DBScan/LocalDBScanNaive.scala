@@ -41,10 +41,9 @@ class LocalDBScanNaive(eps: Double, minPoints: Int) extends Logging{
           point.visited = true
           val neighbors = findNeighbors(point, labeledPoints)
           if (neighbors.size < minPoints) {
-            point.flag = Flag.Noise // ? loose strict
+            point.flag = Flag.Noise
             cluster
           } else {
-            println("About to expand the cluster")
             expandCluster(point, neighbors, labeledPoints, cluster + 1) // new core, new cluster
             cluster + 1
           }
@@ -91,7 +90,9 @@ class LocalDBScanNaive(eps: Double, minPoints: Int) extends Logging{
         if(neighobr.cluster == DBScanLabeledPoint.Unknown){
           neighobr.cluster = cluster
           neighobr.flag = Flag.Border
-        } // point was labeled as Noise before, so the cluster is Unknown, but it can be the Border which match the other core point
+        }
+
+
       })
     }
   }

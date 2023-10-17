@@ -30,9 +30,9 @@ class EvenSplitPartitioner(maxPointsPerPartition:Long, minimumRectangleSize: Dou
   def findBoundingRectangle(rectangleWithCount: Set[RectangleWithCount]): DBScanRectangle = {
     val invertedRectangle =
       DBScanRectangle(Double.MaxValue, Double.MaxValue,
-        Double.MinValue, Double.MinValue)// build the initial rectangle
+        Double.MinValue, Double.MinValue)
 
-    rectangleWithCount.foldLeft(invertedRectangle){
+    rectangleWithCount.foldLeft(invertedRectangle){// build the initial rectangle
       case (bounding, (c, _)) => DBScanRectangle(bounding.x.min(c.x), bounding.y.min(c.y),
         bounding.x2.max(c.x2), bounding.y2.max(c.y2))
     }
@@ -53,11 +53,10 @@ class EvenSplitPartitioner(maxPointsPerPartition:Long, minimumRectangleSize: Dou
   }
 
 
-  /**
-   * Return true if the given rectangle can be split into at least two rectangles of minimum size, and must be sure to develop inner rectangle
-   * @param box
-   * @return tow split box which can make up to box
-   */
+
+  /*
+  * Return true if the given rectangle can be split into at least two rectangles of minimum size
+  * */
 
   private def canBeSplit(box: DBScanRectangle): Boolean ={
     box.x2 - box.x > minimumRectangleSize * 2 ||
@@ -71,8 +70,8 @@ class EvenSplitPartitioner(maxPointsPerPartition:Long, minimumRectangleSize: Dou
   private def findPossibleSplit(box: DBScanRectangle): Set[DBScanRectangle] ={
     val splitX = (box.x + minimumRectangleSize) until box.x2 by minimumRectangleSize
     val splitY = (box.y + minimumRectangleSize) until box.y2 by minimumRectangleSize
-    val splitRectangles = splitX.map(x => DBScanRectangle(box.x, box.y, x, box.y2)) ++
-      splitY.map(y => DBScanRectangle(box.x, box.y, box.x2, y))
+    val splitRectangles = splitX.map(x => DBScanRectangle(box.x, box.y, x, box.y2)) ++//定y变x,步长为2*eps
+      splitY.map(y => DBScanRectangle(box.x, box.y, box.x2, y)) //定x变y,步长为2*eps
     println(s"Possible splits: $splitRectangles")
     splitRectangles.toSet
   }
@@ -84,6 +83,7 @@ class EvenSplitPartitioner(maxPointsPerPartition:Long, minimumRectangleSize: Dou
   * if the box is valid for boundary, return another rectangle which this one combine the box is boundary
   *
   * */
+  //求划分后矩形的补矩形
   private def complement(box: DBScanRectangle, boundary: DBScanRectangle): DBScanRectangle = {
     if(box.x == boundary.x && box.y == boundary.y){
       if(boundary.x2 >= box.x2 && boundary.y2 >= box.y2){
@@ -118,14 +118,13 @@ class EvenSplitPartitioner(maxPointsPerPartition:Long, minimumRectangleSize: Dou
         }
       }
     })
-    (smallestSplit, complement(smallestSplit, rectangle))
+    (smallestSplit, complement(smallestSplit, rectangle))//计算划分的成本，并求该矩形的补矩形
   }
 
 
   @tailrec
   private def partition(remaining: List[RectangleWithCount], partitioned: List[RectangleWithCount],
                         pointsIn: (DBScanRectangle) => Int): List[RectangleWithCount] = {
-
     remaining match {
       case (rectangle, count) :: rest =>
         if (count > maxPointsPerPartition) {
@@ -142,7 +141,7 @@ class EvenSplitPartitioner(maxPointsPerPartition:Long, minimumRectangleSize: Dou
           } else {
             println(s"Can't split: ($rectangle -> $count)," +
               s" maxPointsSize: $maxPointsPerPartition")
-            partition(rest, (rectangle, count) :: partitioned, pointsIn)// change point
+            partition(rest, (rectangle, count) :: partitioned, pointsIn)  //
           }
         } else {
           partition(rest, (rectangle, count) :: partitioned, pointsIn)
@@ -152,14 +151,12 @@ class EvenSplitPartitioner(maxPointsPerPartition:Long, minimumRectangleSize: Dou
   }
 
   def findPartitions(toSplit: Set[RectangleWithCount]): List[RectangleWithCount] = {
-    val boundingRectangle: DBScanRectangle = findBoundingRectangle(toSplit)
+    val boundingRectangle = findBoundingRectangle(toSplit) //find initicial rectangle
     def pointsIn = pointsInRectangle(toSplit, _: DBScanRectangle)
     val toPartition = List((boundingRectangle, pointsIn(boundingRectangle)))
     val partitioned = List[RectangleWithCount]()
     println("About to start partitioning...")
-    val partitions: List[(DBScanRectangle, Int)] = partition(toPartition, partitioned, pointsIn)
-    println("the Partitions are below:")
-    partitions.foreach(println)
+    val partitions = partition(toPartition, partitioned, pointsIn)
     println("Partitioning Done")
 
     partitions.filter({

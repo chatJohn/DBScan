@@ -22,12 +22,6 @@
     </file-type-list>
   </component>
   <component name="MavenImportPreferences">
-    <option name="generalSettings">
-      <MavenGeneralSettings>
-        <option name="localRepository" value="F:\Maven\repository" />
-        <option name="userSettingsFile" value="F:\Maven\settings.xml" />
-      </MavenGeneralSettings>
-    </option>
     <option name="importingSettings">
       <MavenImportingSettings>
         <option name="jdkForImporter" value="1.8" />
@@ -41,36 +35,29 @@
   <component name="ProjectViewState">
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">
-    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
-    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
-    <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/src/main/resources" />
-    <property name="node.js.detected.package.eslint" value="true" />
-    <property name="node.js.detected.package.tslint" value="true" />
-    <property name="node.js.selected.package.eslint" value="(autodetect)" />
-    <property name="node.js.selected.package.tslint" value="(autodetect)" />
-    <property name="project.structure.last.edited" value="Modules" />
-    <property name="project.structure.proportion" value="0.17" />
-    <property name="project.structure.side.proportion" value="0.2" />
-    <property name="scala_project_settings_configurable.last_selected_tab_index" value="7" />
-    <property name="settings.editor.selected.configurable" value="MavenSettings" />
-    <property name="vue.rearranger.settings.migration" value="true" />
-  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "last_opened_file_path": "D:/START/distribute-ST-cluster/code/dbscan-on-spark",
+    "project.structure.last.edited": "全局库",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.40574712",
+    "settings.editor.selected.configurable": "MavenSettings"
+  }
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="F:\IntelliJ IDEA 2021.2.3\JavaStudy\SparkMaven\src\main\resources" />
       <recent name="F:\IntelliJ IDEA 2021.2.3\JavaStudy\SparkMaven\src\main\java\com\chatting\DBScan" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="F:\IntelliJ IDEA 2021.2.3\JavaStudy\SparkMaven\src\main\resources\taxi_log_2008_by_id" />
       <recent name="F:\IntelliJ IDEA 2021.2.3\JavaStudy\SparkMaven\src\main\resources" />
     </key>
   </component>
-  <component name="RunManager" selected="Application.DBScanTest">
+  <component name="RunManager" selected="应用程序.DBScanTest">
     <configuration name="DBScanTest" type="Application" factoryName="Application" temporary="true">
+      <option name="ALTERNATIVE_JRE_PATH" value="1.8" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
       <option name="MAIN_CLASS_NAME" value="org.apache.spark.DBScan.DBScanTest" />
-      <module name="SparkMavenEg" />
+      <module name="dbscan-on-spark_2.10" />
       <extension name="coverage">
         <pattern>
           <option name="PATTERN" value="org.apache.spark.DBScan.*" />
@@ -96,8 +83,7 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Application.DBScanTest" />
-        <item itemvalue="Application.test" />
+        <item itemvalue="应用程序.DBScanTest" />
       </list>
     </recent_temporary>
   </component>
@@ -112,19 +98,20 @@
       <workItem from="1697125841660" duration="1394000" />
       <workItem from="1697200489749" duration="11981000" />
       <workItem from="1697214094699" duration="1421000" />
-      <workItem from="1697250459897" duration="3366000" />
-      <workItem from="1697285507024" duration="4000" />
-      <workItem from="1697286728870" duration="486000" />
-      <workItem from="1697289554930" duration="1166000" />
-      <workItem from="1697339670868" duration="16654000" />
-      <workItem from="1697417770156" duration="2228000" />
-      <workItem from="1697422906328" duration="3562000" />
-      <workItem from="1697428653386" duration="7000" />
-      <workItem from="1697428715426" duration="31000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <breakpoint enabled="true" type="java-exception">
+          <properties class="java.lang.NoSuchMethodError" package="java.lang" />
+          <option name="timeStamp" value="1" />
+        </breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

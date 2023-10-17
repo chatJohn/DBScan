@@ -1,13 +1,12 @@
 package org.apache.spark.DBScan
 
 
-import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.internal.Logging
 import org.apache.spark.DBScan.DBScanLabeledPoint.Flag
 import org.apache.spark.rdd.RDD
+import org.apache.spark.internal.Logging
 import org.apache.spark.mllib.linalg.Vector
-
-import scala.collection.immutable
+//import breeze.linalg.{DenseVector, Vector} //可视化库
+//import breeze.plot._
 
 object DBScan {
   /*
@@ -24,6 +23,42 @@ object DBScan {
   *
   *
   * */
+
+//  def visualizeClusterResults(clusteredData: RDD[(Int, Vector)]): Unit = {
+//    // 提取簇标签和数据点坐标
+//    val (clusterLabels, dataPoints) = clusteredData.collect().map { case (label, vector) =>
+//      (label, (vector(0), vector(1)))
+//    }.unzip
+//
+//    // 创建一个颜色映射，用于区分不同的簇
+//    val uniqueLabels = clusterLabels.distinct
+//    val colors = uniqueLabels.indices.map(i => i % 10) // 颜色选择可以根据需要自定义
+//
+//    // 创建一个新图表
+//    val f = Figure()
+//
+//    // 创建一个散点图
+//    val scatterPlot = f.subplot(0)
+//    scatterPlot.title = "DBScan Clustering Result"
+//    scatterPlot.xlabel = "X-axis"
+//    scatterPlot.ylabel = "Y-axis"
+//
+//    for (label <- uniqueLabels) {
+//      val x = dataPoints.zip(clusterLabels).collect {
+//        case ((x, y), `label`) => x
+//      }.map(_.asInstanceOf[Double])
+//
+//      val y = dataPoints.zip(clusterLabels).collect {
+//        case ((x, y), `label`) => y
+//      }.map(_.asInstanceOf[Double])
+//
+//      scatterPlot += plot(x, y, '.', colors(label))
+//    }
+//
+//    // 显示图表
+//    f.refresh()
+//    f.visible = true
+//  }
 
   def train(data: RDD[Vector],
             eps: Double,
@@ -43,7 +78,7 @@ class DBScan private(
 
 
   type Margins = (DBScanRectangle, DBScanRectangle, DBScanRectangle) // inner, main, outer
-  type ClusterId = (Int, Int) //
+  type ClusterId = (Int, Int) //patitionID,clusterID
 
 
   def minimumRectangleSize = 2 * eps
@@ -73,7 +108,7 @@ class DBScan private(
 
     adjacencies
   }
-
+  //inner margin point
   def isInnerPoint(entry: (Int, DBScanLabeledPoint), margins: List[(Margins, Int)]): Boolean = {
     entry match {
       case (partition, point) => {
@@ -98,7 +133,7 @@ class DBScan private(
       .aggregateByKey(0)(_ + _, _ + _) // 先同一个RDD中相同Rectangle数据点相加，然后所有RDD中相同的Rectangle的数据点相加
       .collect()
       .toSet // 构建全局数据点的最小约束矩形 ?
-
+    //包含所有数据点的最小边界，有很多个minimumRectangle组成
 
 
     println("find the best partition for the data space")
@@ -107,12 +142,12 @@ class DBScan private(
       maxPointsPerPartition,
       minimumRectangleSize)
 
-    println(s"Found partitions: $localPartitions")
+    println(s"Found partitions: $localPartitions") //形成了很多个local分区
     localPartitions.foreach(p => println(p.toString()))
 
     // grow partitions to include eps
     val localMargins = localPartitions.map({
-      case (p, _) => (p.shrink(eps), p, p.shrink(-eps))
+      case (p, _) => (p.shrink(eps), p, p.shrink(-eps))  //inner,main,outer margin
     }).zipWithIndex
 
     val margins = vectors.context.broadcast(localMargins) // optimations place?
@@ -125,18 +160,14 @@ class DBScan private(
     } yield (id, point) // the point in the partition with id
 
     val numberOfPartitions: Int = localPartitions.size
-    println(s"Local partitions size: $numberOfPartitions")
+
     println("perform local DBScan")
-//    val tmpValue: RDD[(Int, Iterable[DBScanPoint])] = duplicated.groupByKey()
-//    tmpValue.foreach(println)
     val clustered: RDD[(Int, DBScanLabeledPoint)] = duplicated
       .groupByKey(numberOfPartitions) // param: numPartitions
-      .flatMapValues((points: Iterable[DBScanPoint]) => {
-        println("About to begin the local DBScan")
+      .flatMapValues(points => {
         new LocalDBScanNaive(eps, minPoints).fit(points)
-      }) // different partition has different clustering
-//    println("Local Cluster found clustered: ")
-//    clustered.foreach(println)
+      }).cache() // different partition has different clustering
+
     println("find all candidate points for merging clusters and group them => inner margin & outer margin")
     val marginPoints: RDD[(Int, Iterable[(Int, DBScanLabeledPoint)])] = clustered.flatMap({
       case (partition, point) => {
@@ -144,7 +175,8 @@ class DBScan private(
           .filter({
             case ((inner, main, outer), _) => main.contains(point) && !inner.almostContains(point)
             /*
-            * not in inner rectangle not including the border of the inner rectangle
+            * not in inner rectangle but including the border of the inner rectangle
+            * including the border of the main rectangle
             * */
           })
           .map({
@@ -152,8 +184,7 @@ class DBScan private(
           })
       }
     }).groupByKey()
-    println("find all candidate points Done!")
-//    marginPoints.foreach(println)
+
     println("About to find adjacencies")
 
     val adjacencies = marginPoints.flatMapValues(x => findAdjacencies(x)).values.collect()
@@ -202,7 +233,7 @@ class DBScan private(
 
     // relabel non-duplicated points
 
-    val labeledInner: RDD[(Int, DBScanLabeledPoint)] = clustered.filter(isInnerPoint(_, margins.value))
+    val labeledInner = clustered.filter(isInnerPoint(_, margins.value))
       .map({
         case (partition, point) => {
           if (point.flag != Flag.Noise) {
@@ -211,8 +242,6 @@ class DBScan private(
           (partition, point)
         }
       })
-//    println("Relabel inner points Done! And the details show below")
-//    labeledInner.foreach(println)
 
     println("About to relabel outer points")
     val labeledOuter =
@@ -252,14 +281,7 @@ class DBScan private(
       labeledInner.union(labeledOuter))
   }
 
-
-
-
-  /**
-   * this method can get the minimum bounding rectangle, and it can show the lower bound and upper bound
-   * @param p
-   * @return
-   */
+  // why this method can get the minimum bounding rectangle
   def shiftIfNegative(p: Double): Double= {
     if(p < 0) {
       p - minimumRectangleSize
@@ -267,6 +289,7 @@ class DBScan private(
       p
     }
   }
+  //向下取整
   def corner(p: Double): Double = {
     (shiftIfNegative(p) / minimumRectangleSize).intValue * minimumRectangleSize
   }

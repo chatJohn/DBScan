@@ -2,11 +2,11 @@ package org.apache.spark.DBScan
 
 import org.apache.spark.mllib.linalg.Vector
 object DBScanLabeledPoint {
-  val Unknown = 0
+  val Unknown = 0  //cluster
 
   object Flag extends Enumeration{ // 也是一个对象，但是是枚举对象
     type Flag = Value
-    val Border, Core, Noise, NotFlagged = Value // id  = 0, 1, 2, 3
+    val Border, Core, Noise, NotFlagged = Value
   }
 } // 伴生对象存放静态变量和静态方法
 

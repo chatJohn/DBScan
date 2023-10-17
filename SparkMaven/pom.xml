@@ -84,6 +84,19 @@
             <version>${scalatest.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.scalanlp</groupId>
+            <artifactId>breeze_2.11</artifactId> <!-- 或者是 b_2.11 或其他版本 -->
+            <version>1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.scalanlp</groupId>
+            <artifactId>breeze-viz_2.11</artifactId> <!-- 或者是 b_2.11 或其他版本 -->
+            <version>1.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>
