@@ -29,7 +29,8 @@ object DBScanTest{
     val maxPointsPerPartition: Int = 100
 
     val DBScanRes: DBScan = DBScan.train(VectorRDD, eps, minPoints, maxPointsPerPartition)
-    println(DBScanRes.toString)
+    DBScanRes.labeledPoints.coalesce(1).sortBy(x => x.cluster).saveAsTextFile("F:\\IntelliJ IDEA 2021.2.3\\JavaStudy\\SparkMaven\\result")
+ 
 
     sparkContext.stop()
   }
