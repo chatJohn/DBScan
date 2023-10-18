@@ -20,14 +20,20 @@ object DBScanTest{
     }).map((x: (Double, Double)) => {
       Vectors.dense(Array(x._1, x._2))
     })
+    val count = VectorRDD.count()
 
-    val eps: Double = 0.00006 //2
+    val eps: Double = 0.02 //2
     val minPoints: Int = 4
     val maxPointsPerPartition: Int = 600//20
 
+    val startTime = System.currentTimeMillis() //自1970年1月 1日午夜以来的毫秒数
     val DBScanRes: DBScan = DBScan.train(VectorRDD, eps, minPoints, maxPointsPerPartition)
-    println(DBScanRes)
+    val endTime = System.currentTimeMillis()
+    val totalTime = endTime - startTime  //统计运行时间
 
+    println(DBScanRes)
+    println("Size of Dataset",count)
+    println("Start Time",startTime,"  End Time",endTime,"  Time Cost",totalTime,"ms")
     sparkContext.stop()
   }
 }
