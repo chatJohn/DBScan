@@ -1,4 +1,4 @@
-package org.apache.spark.DBScan
+package org.apache.spark.DBScanNaive
 
 import org.apache.spark.mllib.linalg
 import org.apache.spark.rdd.RDD
@@ -9,7 +9,11 @@ object DBScanTest{
 
     val fileList = Array("F:\\IntelliJ IDEA 2021.2.3\\JavaStudy\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\1.txt",
                           "F:\\IntelliJ IDEA 2021.2.3\\JavaStudy\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\2.txt",
-                        "F:\\IntelliJ IDEA 2021.2.3\\JavaStudy\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\3.txt")
+                        "F:\\IntelliJ IDEA 2021.2.3\\JavaStudy\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\3.txt",
+                        "F:\\IntelliJ IDEA 2021.2.3\\JavaStudy\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\4.txt",
+                        "F:\\IntelliJ IDEA 2021.2.3\\JavaStudy\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\5.txt",
+                        "F:\\IntelliJ IDEA 2021.2.3\\JavaStudy\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\6.txt"
+    )
 
 
     val conf = new SparkConf()
@@ -23,15 +27,22 @@ object DBScanTest{
     }).map((x: (Double, Double)) => {
       Vectors.dense(Array(x._1, x._2))
     })
+// 400
+    val eps: Double = 400
+    val minPoints: Int = 40
+    val maxPointsPerPartition: Int = 10000
 
-    val eps: Double = 0.0005
-    val minPoints: Int = 60
-    val maxPointsPerPartition: Int = 100
+    val startTime = System.currentTimeMillis()
+
 
     val DBScanRes: DBScan = DBScan.train(VectorRDD, eps, minPoints, maxPointsPerPartition)
+    val endTime = System.currentTimeMillis()
+    val total = endTime - startTime
+
+    println(s"Total Time Cost: $total")
     DBScanRes.labeledPoints.coalesce(1).sortBy(x => x.cluster).saveAsTextFile("F:\\IntelliJ IDEA 2021.2.3\\JavaStudy\\SparkMaven\\result")
- 
 
     sparkContext.stop()
+
   }
 }

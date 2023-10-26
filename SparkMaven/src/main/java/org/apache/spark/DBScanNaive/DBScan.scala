@@ -1,9 +1,9 @@
-package org.apache.spark.DBScan
+package org.apache.spark.DBScanNaive
 
 
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
-import org.apache.spark.DBScan.DBScanLabeledPoint.Flag
+import org.apache.spark.DBScanNaive.DBScanLabeledPoint.Flag
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
 
@@ -34,8 +34,8 @@ object DBScan {
 }
 
 
-class DBScan private(
-                      val eps: Double, val minPoints: Int,
+class DBScan private(val eps: Double,
+                     val minPoints: Int,
                       val maxPointsPerPartition: Int,
                       @transient val partitions: List[(Int, DBScanRectangle)],
                       @transient private val labeledPartitionedPoints: RDD[(Int, DBScanLabeledPoint)])
@@ -48,11 +48,10 @@ class DBScan private(
 
   def minimumRectangleSize = 2 * eps
   def labeledPoints: RDD[DBScanLabeledPoint] = {
-    labeledPartitionedPoints.values // all points in working space
+    labeledPartitionedPoints.values // all labeled points in working space after implementing the DBScan
   }
 
-  def findAdjacencies(partition: Iterable[(Int, DBScanLabeledPoint)]):
-  Set[((Int, Int), (Int, Int))] = {
+  def findAdjacencies(partition: Iterable[(Int, DBScanLabeledPoint)]): Set[((Int, Int), (Int, Int))] = {
     val zero = (Map[DBScanPoint, ClusterId](), Set[(ClusterId, ClusterId)]())
 
     val (seen, adjacencies) = partition.foldLeft(zero)({
@@ -119,7 +118,7 @@ class DBScan private(
 
     // assign each point to its proper partition
     val duplicated: RDD[(Int, DBScanPoint)] = for {
-      point <- vectors.map(DBScanPoint)
+      point <- vectors.map(new DBScanPoint(_))
       ((inner, main, outer), id) <- margins.value // i <- limit, and j <- limits for every i
       if outer.contains(point) // optimation place?
     } yield (id, point) // the point in the partition with id
@@ -127,16 +126,15 @@ class DBScan private(
     val numberOfPartitions: Int = localPartitions.size
     println(s"Local partitions size: $numberOfPartitions")
     println("perform local DBScan")
-//    val tmpValue: RDD[(Int, Iterable[DBScanPoint])] = duplicated.groupByKey()
-//    tmpValue.foreach(println)
+
+
     val clustered: RDD[(Int, DBScanLabeledPoint)] = duplicated
       .groupByKey(numberOfPartitions) // param: numPartitions
       .flatMapValues((points: Iterable[DBScanPoint]) => {
         println("About to begin the local DBScan")
         new LocalDBScanNaive(eps, minPoints).fit(points)
       }) // different partition has different clustering
-//    println("Local Cluster found clustered: ")
-//    clustered.foreach(println)
+
     println("find all candidate points for merging clusters and group them => inner margin & outer margin")
     val marginPoints: RDD[(Int, Iterable[(Int, DBScanLabeledPoint)])] = clustered.flatMap({
       case (partition, point) => {
@@ -153,7 +151,8 @@ class DBScan private(
       }
     }).groupByKey()
     println("find all candidate points Done!")
-//    marginPoints.foreach(println)
+
+
     println("About to find adjacencies")
 
     val adjacencies = marginPoints.flatMapValues(x => findAdjacencies(x)).values.collect()
@@ -162,6 +161,7 @@ class DBScan private(
     val adjacenciesGraph = adjacencies.foldLeft(DBScanGraph[ClusterId]())({
       case (graph, (from, to)) => graph.connect(from, to)
     })
+
     println("About to find all cluster ids")
 
     // find all cluster id

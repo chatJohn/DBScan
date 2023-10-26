@@ -1,4 +1,4 @@
-package org.apache.spark.DBScan
+package org.apache.spark.DBScanNaive
 
 import org.apache.spark.mllib.linalg.Vector
 object DBScanLabeledPoint {

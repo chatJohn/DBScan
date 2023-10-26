@@ -1,4 +1,4 @@
-package org.apache.spark.DBScan
+package org.apache.spark.DBScanNaive
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -18,7 +18,7 @@ package org.apache.spark.DBScan
  */
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.DBScan.DBScanLabeledPoint.Flag
+import org.apache.spark.DBScanNaive.DBScanLabeledPoint.Flag
 import org.apache.spark.mllib.linalg.Vectors
 
 import scala.collection.mutable
@@ -88,10 +88,10 @@ class LocalDBScanNaive(eps: Double, minPoints: Int) extends Logging{
             neighobr.flag = Flag.Border
           }
         }
-        if(neighobr.cluster == DBScanLabeledPoint.Unknown){
+        else if(neighobr.cluster == DBScanLabeledPoint.Unknown){
           neighobr.cluster = cluster
           neighobr.flag = Flag.Border
-        } // point was labeled as Noise before, so the cluster is Unknown, but it can be the Border which match the other core point
+        } // point was labeled is Noise before, so the cluster is Unknown, but it can be the Border which matches the other core point
       })
     }
   }
