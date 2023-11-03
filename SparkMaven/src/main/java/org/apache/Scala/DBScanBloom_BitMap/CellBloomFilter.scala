@@ -1,21 +1,17 @@
-package org.apache.spark.DBScanBloom_BitMap
+package org.apache.spark.Scala.DBScanBloom_BitMap
 
-import org.apache.hadoop.util.bloom.{CountingBloomFilter, Key}
-import org.apache.spark.DBScanBloom_BitMap.CellBloomFilter.{hashType, nbHash, vectorSize}
+import orestes.bloomfilter
+import orestes.bloomfilter.FilterBuilder
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
 
 import scala.collection.mutable.Map
-object CellBloomFilter {
-  private val vectorSize: Int = Int.MaxValue
-  private val nbHash: Int = 10
-  private val hashType: Int = 1 // There are -1, 0, 1 three types Hash Functions Type
-}
-
+object CellBloomFilter{}
 
 case class CellBloomFilter(data: RDD[Vector], allCell: Set[Rectangle]){
-    def buildBloomFilter(): CountingBloomFilter = {
-      val countingBloomFilter = new CountingBloomFilter(vectorSize, nbHash, hashType)
+    def buildBloomFilter(): bloomfilter.CountingBloomFilter[String] = {
+
+      val newCountingBloomFilter: bloomfilter.CountingBloomFilter[String] = new FilterBuilder(10000, 0.01).buildCountingBloomFilter()
       val cellIndex: Set[(Rectangle, Int)] = allCell.zipWithIndex
       val pointWithIndex = Map[Int, Int]()
 
@@ -31,12 +27,13 @@ case class CellBloomFilter(data: RDD[Vector], allCell: Set[Rectangle]){
         }
       })
       val cellCountIndex: Set[((Rectangle, Int), Int)] = cellIndex.map(x => {
-        ((x._1, pointWithIndex(x._2)), x._2)
+        ((x._1, pointWithIndex(x._2)), x._2) // cell, the number points in cell, and the index of cell
       })
       cellCountIndex.foreach(x => {
-        val key = new Key(x.toString.getBytes)
-        countingBloomFilter.add(key)
+        for(i <- 0 until x._1._2){
+          newCountingBloomFilter.add(x._1._1.leftDownX + " " + x._1._1.leftDownY + " " + x._1._1.rightUpX + " " + x._1._1.rightUpY + " ")
+        }
       })
-      countingBloomFilter
+      newCountingBloomFilter
     }
 }

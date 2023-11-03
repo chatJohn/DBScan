@@ -1,6 +1,6 @@
-package org.apache.spark.DBScanNaive
+package org.apache.spark.Scala.DBScanNaive
 
-import org.apache.spark.mllib.linalg
+
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.linalg.{Vectors, Vector}

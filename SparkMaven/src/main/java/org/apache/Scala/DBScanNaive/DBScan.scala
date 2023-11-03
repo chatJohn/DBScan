@@ -1,9 +1,9 @@
-package org.apache.spark.DBScanNaive
+package org.apache.spark.Scala.DBScanNaive
 
 
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
-import org.apache.spark.DBScanNaive.DBScanLabeledPoint.Flag
+import org.apache.spark.Scala.DBScanNaive.DBScanLabeledPoint.Flag
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
 

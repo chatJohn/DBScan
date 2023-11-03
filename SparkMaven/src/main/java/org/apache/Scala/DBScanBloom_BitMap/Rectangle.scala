@@ -1,6 +1,6 @@
-package org.apache.spark.DBScanBloom_BitMap
+package org.apache.spark.Scala.DBScanBloom_BitMap
 
-import org.apache.spark.DBScanBloom_BitMap.Point
+import org.apache.spark.Scala.DBScanBloom_BitMap.Point
 
 case class Rectangle(leftDownX: Double, leftDownY: Double, rightUpX: Double, rightUpY: Double){
   /*

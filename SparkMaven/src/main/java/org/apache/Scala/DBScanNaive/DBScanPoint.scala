@@ -1,14 +1,14 @@
-package org.apache.spark.DBScanBloom_BitMap
+package org.apache.spark.Scala.DBScanNaive
 
-import org.apache.spark.DBScanBloom_BitMap.Point.EARTH_R
+import org.apache.spark.Scala.DBScanNaive.DBScanPoint.EARTH_R
 import org.apache.spark.mllib.linalg.Vector
-object Point{
+object DBScanPoint{
   val EARTH_R = 6378.137
 }
-case class Point(vector: Vector){
+case class DBScanPoint(vector: Vector){
   def x: Double = vector(0)
   def y: Double = vector(1)
-  def distanceSquared(other: Point): Double = {
+  def distanceSquared(other: DBScanPoint): Double = {
   // 欧几里得距离
     /*val dx = other.x - x
     val dy = other.y - y

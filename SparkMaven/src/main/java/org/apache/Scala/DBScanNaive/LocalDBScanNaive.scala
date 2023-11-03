@@ -1,4 +1,4 @@
-package org.apache.spark.DBScanNaive
+package org.apache.spark.Scala.DBScanNaive
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -18,7 +18,7 @@ package org.apache.spark.DBScanNaive
  */
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.DBScanNaive.DBScanLabeledPoint.Flag
+import org.apache.spark.Scala.DBScanNaive.DBScanLabeledPoint.Flag
 import org.apache.spark.mllib.linalg.Vectors
 
 import scala.collection.mutable

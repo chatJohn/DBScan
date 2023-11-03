@@ -1,4 +1,4 @@
-package org.apache.spark.DBScanNaive
+package org.apache.spark.Scala.DBScanNaive
 
 import scala.annotation.tailrec
 

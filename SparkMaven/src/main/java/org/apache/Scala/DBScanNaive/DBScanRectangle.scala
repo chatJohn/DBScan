@@ -1,4 +1,4 @@
-package org.apache.spark.DBScanNaive
+package org.apache.spark.Scala.DBScanNaive
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more

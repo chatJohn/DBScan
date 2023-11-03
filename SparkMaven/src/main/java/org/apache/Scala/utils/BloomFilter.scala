@@ -1,4 +1,4 @@
-package org.apache.spark.utils
+package org.apache.spark.Scala.utils
 import org.apache.hadoop.util.bloom.{CountingBloomFilter, Key}
 import org.apache.spark.mllib.linalg.Vector
 
@@ -11,7 +11,7 @@ import org.apache.spark.mllib.linalg.Vector
  */
 
 
-import org.apache.spark.utils.BloomFilter.filter
+import org.apache.spark.Scala.utils.BloomFilter.filter
 object BloomFilter{
   private val vectorSize: Int = Int.MaxValue
   private val nbHash: Int = 10
