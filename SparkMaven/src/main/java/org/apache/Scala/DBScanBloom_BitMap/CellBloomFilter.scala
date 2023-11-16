@@ -5,7 +5,9 @@ import orestes.bloomfilter.FilterBuilder
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
 
+import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Map
+
 object CellBloomFilter{}
 
 case class CellBloomFilter(data: RDD[Vector], allCell: Set[Rectangle]){
@@ -31,9 +33,25 @@ case class CellBloomFilter(data: RDD[Vector], allCell: Set[Rectangle]){
       })
       cellCountIndex.foreach(x => {
         for(i <- 0 until x._1._2){
-          newCountingBloomFilter.add(x._1._1.leftDownX + " " + x._1._1.leftDownY + " " + x._1._1.rightUpX + " " + x._1._1.rightUpY + " ")
+          newCountingBloomFilter.add(x._2.toString()) // put the index of the cell, which means the number of this index cell
         }
       })
       newCountingBloomFilter
     }
+
+  private def getBitMap(allCell: Set[(Rectangle, Int)], countingBloomFilter: bloomfilter.CountingBloomFilter[String], eps: Double, maxPoint: Long): ArrayBuffer[Int] = {
+    val bitMap: ArrayBuffer[Int] = new ArrayBuffer[Int]()
+    for (cell_i <- allCell){
+      val outCell: Rectangle = cell_i._1.shrink(eps)
+      var cnt: Long = countingBloomFilter.getEstimatedCount(cell_i._2.toString)
+      for (cell_j <- allCell){
+        if(outCell.hasUnit(cell_j._1)){
+          cnt += countingBloomFilter.getEstimatedCount(cell_j._2.toString)
+        }
+      }
+      if(cnt >= maxPoint) bitMap += 1
+      else bitMap += 0
+    }
+    bitMap
+  }
 }
