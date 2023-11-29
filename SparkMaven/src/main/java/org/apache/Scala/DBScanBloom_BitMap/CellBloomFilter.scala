@@ -11,8 +11,9 @@ import scala.collection.mutable.Map
 object CellBloomFilter{}
 
 case class CellBloomFilter(data: RDD[Vector], allCell: Set[Rectangle]){
-    def buildBloomFilter(): bloomfilter.CountingBloomFilter[String] = {
 
+
+    def buildBloomFilter(): bloomfilter.CountingBloomFilter[String] = {
       val newCountingBloomFilter: bloomfilter.CountingBloomFilter[String] = new FilterBuilder(10000, 0.01).buildCountingBloomFilter()
       val cellIndex: Set[(Rectangle, Int)] = allCell.zipWithIndex
       val pointWithIndex = Map[Int, Int]()
@@ -39,7 +40,7 @@ case class CellBloomFilter(data: RDD[Vector], allCell: Set[Rectangle]){
       newCountingBloomFilter
     }
 
-  private def getBitMap(allCell: Set[(Rectangle, Int)], countingBloomFilter: bloomfilter.CountingBloomFilter[String], eps: Double, maxPoint: Long): ArrayBuffer[Int] = {
+   def getBitMap(allCell: Set[(Rectangle, Int)], countingBloomFilter: bloomfilter.CountingBloomFilter[String], eps: Double, maxPoint: Long): ArrayBuffer[Int] = {
     val bitMap: ArrayBuffer[Int] = new ArrayBuffer[Int]()
     for (cell_i <- allCell){
       val outCell: Rectangle = cell_i._1.shrink(eps)

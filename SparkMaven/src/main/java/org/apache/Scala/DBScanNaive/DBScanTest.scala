@@ -18,7 +18,7 @@ object DBScanTest{
 
     val conf = new SparkConf()
     conf.setMaster("local[5]").setAppName("DBScan")
-    val sparkContext = new SparkContext(conf)
+    val sparkContext: SparkContext = new SparkContext(conf)
     val lineRDD: RDD[String] = sparkContext.textFile(fileList.mkString(","), 10)
 
     val VectorRDD: RDD[Vector] = lineRDD.map(x => {
@@ -31,11 +31,14 @@ object DBScanTest{
     val eps: Double = 400
     val minPoints: Int = 40
     val maxPointsPerPartition: Int = 10000
+    //for get cell
+    val x_bounding: Double = 100
+    val y_bouding: Double = 100
 
     val startTime = System.currentTimeMillis()
 
 
-    val DBScanRes: DBScan = DBScan.train(VectorRDD, eps, minPoints, maxPointsPerPartition)
+    val DBScanRes: DBScan = DBScan.train(VectorRDD, eps, minPoints, maxPointsPerPartition,x_bounding, y_bouding, sparkContext)
     val endTime = System.currentTimeMillis()
     val total = endTime - startTime
 

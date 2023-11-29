@@ -1,13 +1,17 @@
 package org.apache.spark.Scala.DBScanNaive
 
 
+import orestes.bloomfilter.CountingBloomFilter
+import org.apache.spark.Scala.DBScanBloom_BitMap.{Cell, CellBloomFilter, Rectangle}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.Scala.DBScanNaive.DBScanLabeledPoint.Flag
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
 
 import scala.collection.immutable
+import scala.collection.mutable.ArrayBuffer
 
 object DBScan {
   /*
@@ -25,11 +29,15 @@ object DBScan {
   *
   * */
 
+
   def train(data: RDD[Vector],
             eps: Double,
             minPoints: Int,
-            maxPointsPerPartition: Int): DBScan = {
-    new DBScan(eps, minPoints, maxPointsPerPartition, null, null).train(data)
+            maxPointsPerPartition: Int,
+            x_bounding: Double,
+            y_bouding: Double,
+            sc: SparkContext): DBScan = {
+    new DBScan(eps, minPoints, maxPointsPerPartition, x_bounding, y_bouding, sc = sc, null, null).train(data)
   }
 }
 
@@ -37,15 +45,15 @@ object DBScan {
 class DBScan private(val eps: Double,
                      val minPoints: Int,
                       val maxPointsPerPartition: Int,
+                     val x_bounding: Double,
+                     val y_bouding: Double,
+                     val sc: SparkContext,
                       @transient val partitions: List[(Int, DBScanRectangle)],
                       @transient private val labeledPartitionedPoints: RDD[(Int, DBScanLabeledPoint)])
   extends Serializable  with Logging{
 
-
   type Margins = (DBScanRectangle, DBScanRectangle, DBScanRectangle) // inner, main, outer
   type ClusterId = (Int, Int) //
-
-
   def minimumRectangleSize = 2 * eps
   def labeledPoints: RDD[DBScanLabeledPoint] = {
     labeledPartitionedPoints.values // all labeled points in working space after implementing the DBScan
@@ -69,7 +77,6 @@ class DBScan private(val eps: Double,
         }
       }
     })
-
     adjacencies
   }
 
@@ -83,12 +90,54 @@ class DBScan private(val eps: Double,
       }
     }
   }
+  private def point2Rectangle(point: DBScanPoint, eps: Double): Rectangle = {
+    Rectangle(point.x - eps, point.y - eps, point.x + eps, point.y)
+  }
+  /**
+   * this function for decreasing the number of points duplicated
+   * Notes: this function can be optimal
+   * @param vectors
+   * @param margins
+   * @return
+   */
+  private def GetPointWitdId(vectors: RDD[Vector], margins: Broadcast[List[((DBScanRectangle, DBScanRectangle, DBScanRectangle), Int)]], sc: SparkContext): RDD[(Int, DBScanPoint)] = {
+    val allCells: Set[Rectangle] = new Cell(vectors, x_bounding, y_bouding, eps).getCell(data = vectors)
+    val cellBloomFilter: CellBloomFilter = new CellBloomFilter(data = vectors, allCell = allCells)
+    val countBloomFilter: CountingBloomFilter[String] = cellBloomFilter.buildBloomFilter()
+    val bitMap: ArrayBuffer[Int] = cellBloomFilter.getBitMap(allCell = allCells.zipWithIndex, countingBloomFilter = countBloomFilter, eps = eps, maxPoint = minPoints)
+    val res: RDD[(Int, DBScanPoint)] = sc.emptyRDD[(Int, DBScanPoint)]
+    for(point <- vectors){
+      val dBScanPoint: DBScanPoint = new DBScanPoint(point)
+      val pointRec = point2Rectangle(dBScanPoint, eps)
+      for(((_, _, outer), id) <- margins.value) {
+        if(outer.contains(dBScanPoint)){ // this point should be outer rectangle first
+          val rectangle: Rectangle =  Rectangle(outer.x, outer.y, outer.x2, outer.y2)
+          for (((_, _, outer1), id1) <- margins.value){
+            val rectangle1: Rectangle = Rectangle(outer1.x, outer1.y, outer1.x2, outer1.y2)
+            if(rectangle1.hasUnit(pointRec)){ // the rectangle which developed by this point should have unit area with another rectangle
+              val UnitRectangle: Rectangle = rectangle1.getUnit(pointRec) // get the Unit rectangle
+              for ((cell, cellId) <- allCells.zipWithIndex){
+                if(UnitRectangle.hasUnit(cell) && bitMap(cellId) == 1){
+                  res.union(sc.parallelize(Seq((id1, dBScanPoint))))
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    res
+  }
 
   private def train(vectors: RDD[Vector]) :DBScan = {
     // generate the smallest rectangles that the space and
     // count the number of points in each one of them
 
     println("About to train")
+    // 构建全局的bitMap, 和CountingBloomFilter
+
+
+
     val minimumRectangleWithCount = vectors
       .map(x => {
         toMinimumBoundingRectangle(x) // give every point the minimum bounding rectangle
@@ -114,14 +163,21 @@ class DBScan private(val eps: Double,
       case (p, _) => (p.shrink(eps), p, p.shrink(-eps))
     }).zipWithIndex
 
-    val margins = vectors.context.broadcast(localMargins) // optimations place?
+    val margins: Broadcast[List[((DBScanRectangle, DBScanRectangle, DBScanRectangle), Int)]] = vectors.context.broadcast(localMargins) // optimations place?
 
-    // assign each point to its proper partition
+  /*  // assign each point to its proper partition
     val duplicated: RDD[(Int, DBScanPoint)] = for {
       point <- vectors.map(new DBScanPoint(_))
       ((inner, main, outer), id) <- margins.value // i <- limit, and j <- limits for every i
-      if outer.contains(point) // optimation place?
+//      if outer.contains(point) // optimation place?
+      // ==> the change version
+      if outer.contains(point)
     } yield (id, point) // the point in the partition with id
+*/
+    // first to filter the outer point
+//    vectors.map(x => new DBScanPoint(x)).filter()
+
+    val duplicated: RDD[(Int, DBScanPoint)] = GetPointWitdId(vectors, margins, sc = sc)
 
     val numberOfPartitions: Int = localPartitions.size
     println(s"Local partitions size: $numberOfPartitions")
@@ -248,6 +304,9 @@ class DBScan private(val eps: Double,
       eps,
       minPoints,
       maxPointsPerPartition,
+      x_bounding,
+      y_bouding,
+      sc,
       finalPartitions,
       labeledInner.union(labeledOuter))
   }

@@ -25,10 +25,27 @@ case class Rectangle(leftDownX: Double, leftDownY: Double, rightUpX: Double, rig
     else {
       if(b.rightUpX > this.leftDownX  && this.leftDownY < b.rightUpY || b.rightUpX > this.leftDownX && b.rightUpY > this.leftDownY) true // left
       else if(b.rightUpX > this.leftDownX  && this.leftDownY < b.rightUpY || b.leftDownX < this.rightUpX && b.leftDownY < this.rightUpY) true // up
-      else if(b.leftDownX < this.rightUpX  && this.leftDownY < b.rightUpY || b.leftDownX < this.rightUpX && b.leftDownY < this.rightUpY) true // left
+      else if(b.leftDownX < this.rightUpX  && this.leftDownY < b.rightUpY || b.leftDownX < this.rightUpX && b.leftDownY < this.rightUpY) true // right
       else if(b.leftDownX < this.rightUpX  && this.leftDownY < b.rightUpY || b.rightUpX > this.leftDownX && b.rightUpY > this.leftDownY) true // down
       else false
     }
+  }
+
+
+  def getUnit(b: Rectangle): Rectangle = {
+    // left
+    if(b.rightUpX > this.leftDownX  && this.leftDownY < b.rightUpY || b.rightUpX > this.leftDownX && b.rightUpY > this.leftDownY)
+         Rectangle(b.leftDownX, Math.max(leftDownY, b.leftDownY), rightUpX, Math.min(rightUpY, b.rightUpY))
+    // up
+    else if(b.rightUpX > this.leftDownX  && this.leftDownY < b.rightUpY || b.leftDownX < this.rightUpX && b.leftDownY < this.rightUpY)
+        Rectangle(Math.max(leftDownX, b.leftDownX), leftDownY, Math.min(rightUpX, b.rightUpX), b.rightUpY)
+    // right
+    else if(b.leftDownX < this.rightUpX  && this.leftDownY < b.rightUpY || b.leftDownX < this.rightUpX && b.leftDownY < this.rightUpY)
+      Rectangle(leftDownX, Math.max(leftDownY, b.leftDownY), b.rightUpX, Math.min(rightUpY, b.rightUpY))
+    // down
+    else if(b.leftDownX < this.rightUpX  && this.leftDownY < b.rightUpY || b.rightUpX > this.leftDownX && b.rightUpY > this.leftDownY)
+      Rectangle(Math.max(leftDownX, b.leftDownX), b.leftDownY, Math.min(b.rightUpX, rightUpX), rightUpY)
+
   }
   /**
    * Return the new DBScanRectangle from shrinking this rectangle by given amount

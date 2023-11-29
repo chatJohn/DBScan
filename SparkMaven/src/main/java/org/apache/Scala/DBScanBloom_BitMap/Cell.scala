@@ -48,7 +48,7 @@ case class Cell(data: RDD[Vector], x_bounding: Double, y_bounding: Double, eps: 
     splitCells.toSet
   }
 
-    private def getCell(data: RDD[Vector]): Set[Rectangle] = {
+  def getCell(data: RDD[Vector]): Set[Rectangle] = {
       val leftXMin = {
         data.map(x =>
           getPointMinimumBoundingRectangle(x))
