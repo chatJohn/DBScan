@@ -5,6 +5,7 @@ import orestes.bloomfilter.FilterBuilder
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Map
 
@@ -16,21 +17,21 @@ case class CellBloomFilter(data: RDD[Vector], allCell: Set[Rectangle]){
     def buildBloomFilter(): bloomfilter.CountingBloomFilter[String] = {
       val newCountingBloomFilter: bloomfilter.CountingBloomFilter[String] = new FilterBuilder(10000, 0.01).buildCountingBloomFilter()
       val cellIndex: Set[(Rectangle, Int)] = allCell.zipWithIndex
-      val pointWithIndex = Map[Int, Int]()
+      var pointWithIndex: mutable.Map[Int, Int] = mutable.Map()
 
       data.collect().foreach(x => {
         for (elem <- cellIndex) {
           if(elem._1.contains(Point(x))){
             if(pointWithIndex.contains(elem._2)){
-              pointWithIndex(elem._2) += 1
+              pointWithIndex.update(elem._2, pointWithIndex.getOrElseUpdate(elem._2, 0) + 1)
             }else{
-              pointWithIndex += (elem._2 -> 1)
+              pointWithIndex.put(elem._2, 1)
             }
           }
         }
       })
       val cellCountIndex: Set[((Rectangle, Int), Int)] = cellIndex.map(x => {
-        ((x._1, pointWithIndex(x._2)), x._2) // cell, the number points in cell, and the index of cell
+        ((x._1, pointWithIndex.getOrElse(x._2, 0)), x._2) // cell, the number points in cell, and the index of cell
       })
       cellCountIndex.foreach(x => {
         for(i <- 0 until x._1._2){

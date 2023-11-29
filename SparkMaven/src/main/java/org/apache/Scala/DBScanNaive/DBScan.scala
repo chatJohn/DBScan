@@ -10,7 +10,6 @@ import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
 
-import scala.collection.immutable
 import scala.collection.mutable.ArrayBuffer
 
 object DBScan {
@@ -28,8 +27,7 @@ object DBScan {
   *
   *
   * */
-
-
+  var sc: SparkContext = null
   def train(data: RDD[Vector],
             eps: Double,
             minPoints: Int,
@@ -37,19 +35,19 @@ object DBScan {
             x_bounding: Double,
             y_bouding: Double,
             sc: SparkContext): DBScan = {
-    new DBScan(eps, minPoints, maxPointsPerPartition, x_bounding, y_bouding, sc = sc, null, null).train(data)
+    this.sc = sc
+    new DBScan(eps, minPoints, maxPointsPerPartition, x_bounding, y_bouding, null, null).train(data)
   }
 }
 
 
 class DBScan private(val eps: Double,
                      val minPoints: Int,
-                      val maxPointsPerPartition: Int,
+                     val maxPointsPerPartition: Int,
                      val x_bounding: Double,
                      val y_bouding: Double,
-                     val sc: SparkContext,
-                      @transient val partitions: List[(Int, DBScanRectangle)],
-                      @transient private val labeledPartitionedPoints: RDD[(Int, DBScanLabeledPoint)])
+                     @transient val partitions: List[(Int, DBScanRectangle)],
+                     @transient private val labeledPartitionedPoints: RDD[(Int, DBScanLabeledPoint)])
   extends Serializable  with Logging{
 
   type Margins = (DBScanRectangle, DBScanRectangle, DBScanRectangle) // inner, main, outer
@@ -100,12 +98,12 @@ class DBScan private(val eps: Double,
    * @param margins
    * @return
    */
-  private def GetPointWitdId(vectors: RDD[Vector], margins: Broadcast[List[((DBScanRectangle, DBScanRectangle, DBScanRectangle), Int)]], sc: SparkContext): RDD[(Int, DBScanPoint)] = {
+  private def GetPointWithId(vectors: RDD[Vector], margins: Broadcast[List[((DBScanRectangle, DBScanRectangle, DBScanRectangle), Int)]]): List[(Int, DBScanPoint)] = {
     val allCells: Set[Rectangle] = new Cell(vectors, x_bounding, y_bouding, eps).getCell(data = vectors)
     val cellBloomFilter: CellBloomFilter = new CellBloomFilter(data = vectors, allCell = allCells)
     val countBloomFilter: CountingBloomFilter[String] = cellBloomFilter.buildBloomFilter()
     val bitMap: ArrayBuffer[Int] = cellBloomFilter.getBitMap(allCell = allCells.zipWithIndex, countingBloomFilter = countBloomFilter, eps = eps, maxPoint = minPoints)
-    val res: RDD[(Int, DBScanPoint)] = sc.emptyRDD[(Int, DBScanPoint)]
+    var res: List[(Int, DBScanPoint)] = List[(Int, DBScanPoint)]()
     for(point <- vectors){
       val dBScanPoint: DBScanPoint = new DBScanPoint(point)
       val pointRec = point2Rectangle(dBScanPoint, eps)
@@ -118,7 +116,7 @@ class DBScan private(val eps: Double,
               val UnitRectangle: Rectangle = rectangle1.getUnit(pointRec) // get the Unit rectangle
               for ((cell, cellId) <- allCells.zipWithIndex){
                 if(UnitRectangle.hasUnit(cell) && bitMap(cellId) == 1){
-                  res.union(sc.parallelize(Seq((id1, dBScanPoint))))
+                  res = res:+(id1, dBScanPoint)
                 }
               }
             }
@@ -177,7 +175,7 @@ class DBScan private(val eps: Double,
     // first to filter the outer point
 //    vectors.map(x => new DBScanPoint(x)).filter()
 
-    val duplicated: RDD[(Int, DBScanPoint)] = GetPointWitdId(vectors, margins, sc = sc)
+    val duplicated: RDD[(Int, DBScanPoint)] = DBScan.sc.parallelize(GetPointWithId(vectors, margins))
 
     val numberOfPartitions: Int = localPartitions.size
     println(s"Local partitions size: $numberOfPartitions")
@@ -306,7 +304,6 @@ class DBScan private(val eps: Double,
       maxPointsPerPartition,
       x_bounding,
       y_bouding,
-      sc,
       finalPartitions,
       labeledInner.union(labeledOuter))
   }

@@ -45,7 +45,7 @@ case class Rectangle(leftDownX: Double, leftDownY: Double, rightUpX: Double, rig
     // down
     else if(b.leftDownX < this.rightUpX  && this.leftDownY < b.rightUpY || b.rightUpX > this.leftDownX && b.rightUpY > this.leftDownY)
       Rectangle(Math.max(leftDownX, b.leftDownX), b.leftDownY, Math.min(b.rightUpX, rightUpX), rightUpY)
-
+    else Rectangle(0, 0, 0, 0)
   }
   /**
    * Return the new DBScanRectangle from shrinking this rectangle by given amount
