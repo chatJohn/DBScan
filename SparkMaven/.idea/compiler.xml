@@ -6,8 +6,8 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="SparkMaven" />
         <module name="SparkMavenEg" />
-        <module name="dbscan-on-spark_2.10" />
       </profile>
     </annotationProcessing>
   </component>
