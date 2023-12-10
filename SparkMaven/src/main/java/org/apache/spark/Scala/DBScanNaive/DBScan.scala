@@ -92,7 +92,7 @@ class DBScan private(val eps: Double,
     }
   }
   private def point2Rectangle(point: DBScanPoint, eps: Double): Rectangle = {
-    Rectangle(point.x - eps, point.y - eps, point.x + eps, point.y)
+    Rectangle(point.x - eps, point.y - eps, point.x + eps, point.y + eps)
   }
   /**
    * this function for decreasing the number of points duplicated
@@ -102,57 +102,25 @@ class DBScan private(val eps: Double,
    * @return
    */
 
-//  private def GetPointWithId(vectors: RDD[Vector], margins: Broadcast[List[((DBScanRectangle, DBScanRectangle, DBScanRectangle), Int)]]): List[(Int, DBScanPoint)] = {
-//    val allCells: Set[Rectangle] = new Cell(vectors, x_bounding, y_bouding, eps).getCell(data = vectors)
-//    val cellBloomFilter: CellBloomFilter = new CellBloomFilter(data = vectors, allCell = allCells)
-//    val countBloomFilter: CountingBloomFilter[String] = cellBloomFilter.buildBloomFilter()
-//    val bitMap: ArrayBuffer[Int] = cellBloomFilter.getBitMap(allCell = allCells.zipWithIndex, countingBloomFilter = countBloomFilter, eps = eps, maxPoint = minPoints)
-//    var res: List[(Int, DBScanPoint)] = List[(Int, DBScanPoint)]()
-//    for(point <- vectors){
-//      val dBScanPoint: DBScanPoint = new DBScanPoint(point)
-//      val pointRec = point2Rectangle(dBScanPoint, eps)
-//      for(((_, _, outer), id) <- margins.value) {
-//        if(outer.contains(dBScanPoint)){ // this point should be outer rectangle first
-//          val rectangle: Rectangle =  Rectangle(outer.x, outer.y, outer.x2, outer.y2)
-//          for (((_, _, outer1), id1) <- margins.value){
-//            val rectangle1: Rectangle = Rectangle(outer1.x, outer1.y, outer1.x2, outer1.y2)
-//            if(rectangle1.hasUnit(pointRec)){ // the rectangle which developed by this point should have unit area with another rectangle
-//              val UnitRectangle: Rectangle = rectangle1.getUnit(pointRec) // get the Unit rectangle
-//              for ((cell, cellId) <- allCells.zipWithIndex){
-//                if(UnitRectangle.hasUnit(cell) && bitMap(cellId) == 1){
-//                  res = res:+(id1, dBScanPoint)
-//                }
-//              }
-//            }
-//          }
-//        }
-//      }
-//    }
-//    res
-//  }
 
   private def GetPointWithId(vectors: RDD[Vector], margins: Broadcast[List[((DBScanRectangle, DBScanRectangle, DBScanRectangle), Int)]]): List[(Int, DBScanPoint)] = {
     val allCells: Set[Rectangle] = new Cell(vectors, x_bounding, y_bouding, eps).getCell(data = vectors)
     val cellBloomFilter: CellBloomFilter = new CellBloomFilter(data = vectors, allCell = allCells)
     val countBloomFilter: CountingBloomFilter[String] = cellBloomFilter.buildBloomFilter()
-//    for ((cell, cellId) <- allCells.zipWithIndex) {
-//      println("cellId:",cellId,"Count:",countBloomFilter.getEstimatedCount(cellId.toString))
-//    }
     val bitMap: ArrayBuffer[Int] = cellBloomFilter.getBitMap(allCell = allCells.zipWithIndex, countingBloomFilter = countBloomFilter, eps = eps, maxPoint = minPoints)
-//    println("bitMap:",bitMap.size)
-////    bitMap.foreach(print)
-//    var flag=0  //记录有多少个bitMap为0
-//    for(bit<-bitMap){
-//      if(bit==0){
-////        println("-----have 0-----")
-//        flag+=1
-//      }
-//    }
-//    println("flag",flag)
+    println("bitMap:",bitMap.size)
+    var flag=0  //记录有多少个bitMap为0
+    for(bit<-bitMap){
+      if(bit==0){
+//        println("-----have 0-----")
+        flag+=1
+      }
+    }
+    println("flag",flag)
 
     var res: List[(Int, DBScanPoint)] = List[(Int, DBScanPoint)]()
     val vectorsLocal = vectors.collect()
-
+    println("points",vectorsLocal.size)
     val loop = new Breaks
     for(((_,main,outer), id) <- margins.value) { //遍历每一个分区
       for (point <- vectorsLocal) {
@@ -165,19 +133,17 @@ class DBScan private(val eps: Double,
         else if (outer.contains(dBScanPoint)) { //范围：OR(S1)-S1
           val pointRec = point2Rectangle(dBScanPoint, eps)
           val rectangle: Rectangle = Rectangle(main.x, main.y, main.x2, main.y2)
-          if (rectangle.hasUnit(pointRec)) { //判断该点是否需要复制到S1，判断条件：点的扩展矩形与S1的相交区域R是否有核心cell
-            val UnitRectangle: Rectangle = rectangle.getUnit(pointRec) //相交区域R
-            loop.breakable {
-              for ((cell, cellId) <- allCells.zipWithIndex) {
-                if (UnitRectangle.hasUnit(cell) && bitMap(cellId) == 1) {
-                  res = res :+ (id, dBScanPoint)
-                  loop.break()
-                }
+          //判断该点是否需要复制到S1，判断条件：点的扩展矩形与S1的相交区域R是否有核心cell
+          val UnitRectangle: Rectangle = rectangle.getUnit(pointRec) //相交区域R
+          loop.breakable {
+            for ((cell, cellId) <- allCells.zipWithIndex) {
+              if (UnitRectangle.hasUnit(cell) && bitMap(cellId) == 1) {
+                res = res :+ (id, dBScanPoint)
+                loop.break()
               }
             }
           }
         }
-        else {}
       }
     }
     val resGrouped: Map[Int, List[(Int, DBScanPoint)]] = res.groupBy(_._1)
@@ -230,6 +196,11 @@ class DBScan private(val eps: Double,
 //      if outer.contains(point) // optimation place?
 //    } yield (id, point) // the point in the partition with id
 
+//    val groupedById = duplicated.groupByKey()
+//    val result = groupedById.mapValues(iter => iter.size)
+//    result.collect().foreach { case (id, count) =>
+//      println(s"Category $id: $count DBScanPoint(s)")
+//    }
     val duplicated: RDD[(Int, DBScanPoint)] = DBScan.sc.parallelize(GetPointWithId(vectors, margins))
     println("duplicated",duplicated.count())
     val numberOfPartitions: Int = localPartitions.size

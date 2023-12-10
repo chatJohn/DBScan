@@ -46,7 +46,7 @@ case class Cell(data: RDD[Vector], x_bounding: Double, y_bounding: Double, eps: 
       x <- splitX.init
       y <- splitY.init
     } yield Rectangle(x, y, x + x_bounding, y + y_bounding)
-    println(s"Possible splits: $splitCells")
+//    println(s"Possible splits: $splitCells")
     splitCells.toSet
   }
 

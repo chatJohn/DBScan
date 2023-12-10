@@ -10,15 +10,15 @@ case class Point(vector: Vector){
   def y: Double = vector(1)
   def distanceSquared(other: Point): Double = {
   // 欧几里得距离
-    /*val dx = other.x - x
+    val dx = other.x - x
     val dy = other.y - y
-    dx * dx + dy * dy*/
+    dx * dx + dy * dy
 
 
     // 经纬度计算距离
     // x: lon, y: lan
 
-    Math.pow(EARTH_R * Math.acos(Math.sin(other.y) * Math.sin(y) +
-              Math.cos(other.y) * Math.cos(y) * Math.cos(other.x - x)), 2)
+//    Math.pow(EARTH_R * Math.acos(Math.sin(other.y) * Math.sin(y) +
+//              Math.cos(other.y) * Math.cos(y) * Math.cos(other.x - x)), 2)
   }
 }

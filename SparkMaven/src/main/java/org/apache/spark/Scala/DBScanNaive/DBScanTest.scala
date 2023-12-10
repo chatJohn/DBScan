@@ -16,8 +16,8 @@ object DBScanTest {
 //      "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\6.txt"
 //    )
     val directoryPath = "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id"
-    val fileList = (100 to 110).map(i => s"$directoryPath\\$i.txt").toArray
-    //10 to 15 有孤点
+    val fileList = (10 to 15).map(i => s"$directoryPath\\$i.txt").toArray
+    //10 to 15 有孤点100 to 110
 
     val conf = new SparkConf()
     conf.setMaster("local[5]").setAppName("DBScan")
@@ -35,8 +35,8 @@ object DBScanTest {
     val minPoints: Int = 60
     val maxPointsPerPartition: Int = 500
     //for get cell
-    val x_bounding: Double = 0.02
-    val y_bouding: Double = 0.02
+    val x_bounding: Double = 0.1
+    val y_bouding: Double = 0.1
 
     val startTime = System.currentTimeMillis()
 
@@ -44,8 +44,8 @@ object DBScanTest {
     val DBScanRes: DBScan = DBScan.train(VectorRDD, eps, minPoints, maxPointsPerPartition, x_bounding, y_bouding, sparkContext)
     val endTime = System.currentTimeMillis()
     val total = endTime - startTime
-
     println(s"Total Time Cost: $total")
+
     DBScanRes.labeledPoints.coalesce(1).sortBy(x => x.cluster).saveAsTextFile("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\result")
 
     sparkContext.stop()

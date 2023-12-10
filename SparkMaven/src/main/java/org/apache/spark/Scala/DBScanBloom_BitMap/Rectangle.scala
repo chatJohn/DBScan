@@ -21,31 +21,24 @@ case class Rectangle(leftDownX: Double, leftDownY: Double, rightUpX: Double, rig
   }
 
   def hasUnit(b: Rectangle): Boolean = {
-    if(this.contains(b))  true
-    else {
-      if(b.rightUpX > this.leftDownX  && this.leftDownY < b.rightUpY || b.rightUpX > this.leftDownX && b.rightUpY > this.leftDownY) true // left
-      else if(b.rightUpX > this.leftDownX  && this.leftDownY < b.rightUpY || b.leftDownX < this.rightUpX && b.leftDownY < this.rightUpY) true // up
-      else if(b.leftDownX < this.rightUpX  && this.leftDownY < b.rightUpY || b.leftDownX < this.rightUpX && b.leftDownY < this.rightUpY) true // right
-      else if(b.leftDownX < this.rightUpX  && this.leftDownY < b.rightUpY || b.rightUpX > this.leftDownX && b.rightUpY > this.leftDownY) true // down
-      else false
-    }
+    !((b.rightUpX < this.leftDownX) ||  // b在this的左边
+      (b.leftDownX > this.rightUpX) ||   // b在this的右边
+      (b.rightUpY < this.leftDownY) ||   // b在this的下边
+      (b.leftDownY > this.rightUpY))      // b在this的上边
   }
 
 
   def getUnit(b: Rectangle): Rectangle = {
-    // left
-    if(b.rightUpX > this.leftDownX  && this.leftDownY < b.rightUpY || b.rightUpX > this.leftDownX && b.rightUpY > this.leftDownY)
-         Rectangle(b.leftDownX, Math.max(leftDownY, b.leftDownY), rightUpX, Math.min(rightUpY, b.rightUpY))
-    // up
-    else if(b.rightUpX > this.leftDownX  && this.leftDownY < b.rightUpY || b.leftDownX < this.rightUpX && b.leftDownY < this.rightUpY)
-        Rectangle(Math.max(leftDownX, b.leftDownX), leftDownY, Math.min(rightUpX, b.rightUpX), b.rightUpY)
-    // right
-    else if(b.leftDownX < this.rightUpX  && this.leftDownY < b.rightUpY || b.leftDownX < this.rightUpX && b.leftDownY < this.rightUpY)
-      Rectangle(leftDownX, Math.max(leftDownY, b.leftDownY), b.rightUpX, Math.min(rightUpY, b.rightUpY))
-    // down
-    else if(b.leftDownX < this.rightUpX  && this.leftDownY < b.rightUpY || b.rightUpX > this.leftDownX && b.rightUpY > this.leftDownY)
-      Rectangle(Math.max(leftDownX, b.leftDownX), b.leftDownY, Math.min(b.rightUpX, rightUpX), rightUpY)
-    else Rectangle(0, 0, 0, 0)
+    val x1 = math.max(this.leftDownX, b.leftDownX)
+    val y1 = math.max(this.leftDownY, b.leftDownY)
+    val x2 = math.min(this.rightUpX, b.rightUpX)
+    val y2 = math.min(this.rightUpY, b.rightUpY)
+
+    if (x1 <= x2 && y1 <= y2) {
+      Rectangle(x1, y1, x2, y2)
+    } else {
+      Rectangle(0, 0, 0, 0)
+    }
   }
   /**
    * Return the new DBScanRectangle from shrinking this rectangle by given amount
