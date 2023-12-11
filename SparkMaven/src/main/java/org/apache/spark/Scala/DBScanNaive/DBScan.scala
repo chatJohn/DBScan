@@ -14,7 +14,7 @@ import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SparkSession
 import scala.util.control.Breaks
-
+import scala.collection.mutable
 object DBScan {
   /*
   * Train a DBScan Model using the given set of parameters
@@ -107,20 +107,22 @@ class DBScan private(val eps: Double,
     val allCells: Set[Rectangle] = new Cell(vectors, x_bounding, y_bouding, eps).getCell(data = vectors)
     val cellBloomFilter: CellBloomFilter = new CellBloomFilter(data = vectors, allCell = allCells)
     val countBloomFilter: CountingBloomFilter[String] = cellBloomFilter.buildBloomFilter()
-    val bitMap: ArrayBuffer[Int] = cellBloomFilter.getBitMap(allCell = allCells.zipWithIndex, countingBloomFilter = countBloomFilter, eps = eps, maxPoint = minPoints)
+    val allCell = allCells.zipWithIndex
+    val bitMap: mutable.Map[Int, Int] = cellBloomFilter.getBitMap(allCell = allCell, countingBloomFilter = countBloomFilter, eps = eps, maxPoint = minPoints)
     println("bitMap:",bitMap.size)
     var flag=0  //记录有多少个bitMap为0
-    for(bit<-bitMap){
-      if(bit==0){
-//        println("-----have 0-----")
-        flag+=1
-      }
-    }
-    println("flag",flag)
+//    print(bitMap)
+//    for ((key, value) <- bitMap) {
+//      if(value==1){
+//        flag+=1
+//        print(key,"")
+//      }
+//    }
+//    println("bitmap==1",flag)
 
     var res: List[(Int, DBScanPoint)] = List[(Int, DBScanPoint)]()
     val vectorsLocal = vectors.collect()
-    println("points",vectorsLocal.size)
+//    println("points",vectorsLocal.size)
     val loop = new Breaks
     for(((_,main,outer), id) <- margins.value) { //遍历每一个分区
       for (point <- vectorsLocal) {
@@ -135,8 +137,10 @@ class DBScan private(val eps: Double,
           val rectangle: Rectangle = Rectangle(main.x, main.y, main.x2, main.y2)
           //判断该点是否需要复制到S1，判断条件：点的扩展矩形与S1的相交区域R是否有核心cell
           val UnitRectangle: Rectangle = rectangle.getUnit(pointRec) //相交区域R
+//          println("UnitRectangle",UnitRectangle)
           loop.breakable {
-            for ((cell, cellId) <- allCells.zipWithIndex) {
+            for ((cell, cellId) <- allCell) {
+//              if(UnitRectangle.hasUnit(cell)){println("true ",cellId)}
               if (UnitRectangle.hasUnit(cell) && bitMap(cellId) == 1) {
                 res = res :+ (id, dBScanPoint)
                 loop.break()
@@ -196,11 +200,6 @@ class DBScan private(val eps: Double,
 //      if outer.contains(point) // optimation place?
 //    } yield (id, point) // the point in the partition with id
 
-//    val groupedById = duplicated.groupByKey()
-//    val result = groupedById.mapValues(iter => iter.size)
-//    result.collect().foreach { case (id, count) =>
-//      println(s"Category $id: $count DBScanPoint(s)")
-//    }
     val duplicated: RDD[(Int, DBScanPoint)] = DBScan.sc.parallelize(GetPointWithId(vectors, margins))
     println("duplicated",duplicated.count())
     val numberOfPartitions: Int = localPartitions.size

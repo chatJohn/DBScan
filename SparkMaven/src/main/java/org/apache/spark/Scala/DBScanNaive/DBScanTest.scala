@@ -8,16 +8,9 @@ import org.apache.spark.{SparkConf, SparkContext}
 object DBScanTest {
   def main(args: Array[String]): Unit = {
 
-//    val fileList = Array("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\1.txt",
-//      "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\2.txt",
-//      "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\3.txt",
-//      "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\4.txt",
-//      "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\5.txt",
-//      "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\6.txt"
-//    )
     val directoryPath = "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id"
-    val fileList = (10 to 15).map(i => s"$directoryPath\\$i.txt").toArray
-    //10 to 15 有孤点100 to 110
+    val fileList = (1 to 6).map(i => s"$directoryPath\\$i.txt").toArray
+    //10 to 15 有孤点 100 to 110比较均匀
 
     val conf = new SparkConf()
     conf.setMaster("local[5]").setAppName("DBScan")
@@ -32,11 +25,11 @@ object DBScanTest {
     })
     // 400
     val eps: Double = 0.05
-    val minPoints: Int = 60
+    val minPoints: Int = 50
     val maxPointsPerPartition: Int = 500
     //for get cell
-    val x_bounding: Double = 0.1
-    val y_bouding: Double = 0.1
+    val x_bounding: Double = 0.05
+    val y_bouding: Double = 0.05
 
     val startTime = System.currentTimeMillis()
 

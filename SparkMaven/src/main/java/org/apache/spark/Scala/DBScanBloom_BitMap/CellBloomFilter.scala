@@ -47,20 +47,21 @@ case class CellBloomFilter(data: RDD[Vector], allCell: Set[Rectangle]){
         }
       })
 
-      val sortedCellCountIndex = cellCountIndex.toSeq.sortBy(_._2)
-      var cnt: Long=0
-      sortedCellCountIndex.foreach(x=>
-      if(newCountingBloomFilter.getEstimatedCount(x._2.toString)!=0){
-        println("cellId:",x._2,"Point in cell:",newCountingBloomFilter.getEstimatedCount(x._2.toString))
-        cnt+=newCountingBloomFilter.getEstimatedCount(x._2.toString)
-      })
-      println("cnt",cnt)
+//      val sortedCellCountIndex = cellCountIndex.toSeq.sortBy(_._2)
+//      var cnt: Long=0
+//      sortedCellCountIndex.foreach(x=>
+//      if(newCountingBloomFilter.getEstimatedCount(x._2.toString)!=0){
+//        println("cellId:",x._2,"Point in cell:",newCountingBloomFilter.getEstimatedCount(x._2.toString))
+//        cnt+=newCountingBloomFilter.getEstimatedCount(x._2.toString)
+//      })
+//      println("cnt",cnt)
+
       newCountingBloomFilter
     }
 
-    //都没有判断是否有核心点，只要点数达到阈值就bitmap为1了，过滤力度已经很小了，应该结果与baseline一致才对
-   def getBitMap(allCell: Set[(Rectangle, Int)], countingBloomFilter: bloomfilter.CountingBloomFilter[String], eps: Double, maxPoint: Long): ArrayBuffer[Int] = {
-    val bitMap: ArrayBuffer[Int] = new ArrayBuffer[Int]()
+    //没有判断是否有核心点，点数达到阈值bitmap为1了，过滤力度很小
+   def getBitMap(allCell: Set[(Rectangle, Int)], countingBloomFilter: bloomfilter.CountingBloomFilter[String], eps: Double, maxPoint: Long): mutable.Map[Int, Int] = {
+    val bitMap: mutable.Map[Int,Int] = mutable.Map()
     for (cell_i <- allCell){
       val outCell: Rectangle = cell_i._1.shrink(-eps)
       var cnt: Long = countingBloomFilter.getEstimatedCount(cell_i._2.toString)
@@ -69,8 +70,8 @@ case class CellBloomFilter(data: RDD[Vector], allCell: Set[Rectangle]){
           cnt += countingBloomFilter.getEstimatedCount(cell_j._2.toString)
         }
       }
-      if(cnt >= maxPoint) bitMap += 1
-      else bitMap += 0
+      if(cnt >= maxPoint) bitMap(cell_i._2) =1
+      else bitMap(cell_i._2) =0
     }
     bitMap
   }
