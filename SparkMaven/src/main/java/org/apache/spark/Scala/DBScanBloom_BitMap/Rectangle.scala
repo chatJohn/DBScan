@@ -41,7 +41,7 @@ case class Rectangle(leftDownX: Double, leftDownY: Double, rightUpX: Double, rig
     }
   }
   /**
-   * Return the new DBScanRectangle from shrinking this rectangle by given amount
+   * Return the new DBSCANCuboid from shrinking this rectangle by given amount
    * if the mount is positive, the rectangle becomes the inner rectangle, otherwise, it becomes the outer rectangle
    * @param amount
    * @return

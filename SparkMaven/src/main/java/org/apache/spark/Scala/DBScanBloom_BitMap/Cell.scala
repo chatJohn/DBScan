@@ -50,6 +50,46 @@ case class Cell(data: RDD[Vector], x_bounding: Double, y_bounding: Double, eps: 
     splitCells.toSet
   }
 
+  def bound:Double = 10 * x_bounding
+//  private def findPossibleCell(box: Rectangle): Set[Rectangle] = {
+//    //确定密集的部分大小
+//    val leftX = (box.leftDownX + box.rightUpX) / 2 - bound
+//    val rightX = (box.leftDownX + box.rightUpX) / 2 + bound
+//    val leftY = (box.leftDownY + box.rightUpY) / 2 - bound
+//    val rightY = (box.leftDownY + box.rightUpY) / 2 + bound
+//
+//    val splitX = calculateSplit(box.leftDownX, box.rightUpX, leftX, rightX, x_bounding)
+//    val splitY = calculateSplit(box.leftDownY, box.rightUpY, leftY, rightY, y_bounding)
+//
+//    val splitCells = for {
+//      x <- splitX.init
+//      y <- splitY.init
+//    } yield Rectangle(x, y, x + calculateBounding(x,leftX,rightX,x_bounding), y + calculateBounding(y,leftY, rightY,y_bounding))
+//
+//    splitCells.toSet
+//  }
+
+  private def calculateSplit(start: Double, end: Double, left: Double, right: Double,bounding: Double): List[Double] = {
+    //中心部分密集，两边稀疏
+    val leftSplit = (start until left by 2 * bounding).toList :+ left
+    val centerSplit = (left until right by bounding).toList :+ right
+    val rightSplit = (right until end by 2 * bounding).toList :+ end
+
+    leftSplit ++ centerSplit.tail ++ rightSplit.tail
+  }
+
+  private def calculateBounding(coord: Double, left: Double, right: Double, bounding: Double): Double = {
+    if (left <= coord && coord < right) {
+      bounding
+    }
+    else if(coord<left && coord + bounding * 2>left){
+      left-coord
+    }
+    else {
+      bounding * 2
+    }
+  }
+
   def getCell(data: RDD[Vector]): Set[Rectangle] = {
       val leftXMin = {
         data.map(x =>

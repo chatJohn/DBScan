@@ -63,15 +63,18 @@ case class CellBloomFilter(data: RDD[Vector], allCell: Set[Rectangle]){
    def getBitMap(allCell: Set[(Rectangle, Int)], countingBloomFilter: bloomfilter.CountingBloomFilter[String], eps: Double, maxPoint: Long): mutable.Map[Int, Int] = {
     val bitMap: mutable.Map[Int,Int] = mutable.Map()
     for (cell_i <- allCell){
-      val outCell: Rectangle = cell_i._1.shrink(-eps)
-      var cnt: Long = countingBloomFilter.getEstimatedCount(cell_i._2.toString)
-      for (cell_j <- allCell){
-        if(cell_j._2!=cell_i._2 && outCell.hasUnit(cell_j._1)){
-          cnt += countingBloomFilter.getEstimatedCount(cell_j._2.toString)
+      if(countingBloomFilter.getEstimatedCount(cell_i._2.toString)==0){bitMap(cell_i._2) =0}
+      else{
+        val outCell: Rectangle = cell_i._1.shrink(-eps)
+        var cnt: Long = countingBloomFilter.getEstimatedCount(cell_i._2.toString)
+        for (cell_j <- allCell){
+          if(cell_j._2!=cell_i._2 && outCell.hasUnit(cell_j._1)){
+            cnt += countingBloomFilter.getEstimatedCount(cell_j._2.toString)
+          }
         }
+        if(cnt >= maxPoint) bitMap(cell_i._2) =1
+        else bitMap(cell_i._2) =0
       }
-      if(cnt >= maxPoint) bitMap(cell_i._2) =1
-      else bitMap(cell_i._2) =0
     }
     bitMap
   }

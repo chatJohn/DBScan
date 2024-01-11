@@ -32,30 +32,33 @@ object DBScan {
   * */
   var sc: SparkContext = null
   def train(data: RDD[Vector],
-            eps: Double,
+            eps1: Double,
+            eps2: Double,
             minPoints: Int,
             maxPointsPerPartition: Int,
             x_bounding: Double,
             y_bouding: Double,
             sc: SparkContext): DBScan = {
     this.sc = sc
-    new DBScan(eps, minPoints, maxPointsPerPartition, x_bounding, y_bouding, null, null).train(data)
+    new DBScan(eps1,eps2, minPoints, maxPointsPerPartition, x_bounding, y_bouding, null, null).train(data)
   }
 }
 
 
-class DBScan private(val eps: Double,
+class DBScan private(val eps1: Double,
+                     val eps2: Double,
                      val minPoints: Int,
                      val maxPointsPerPartition: Int,
                      val x_bounding: Double,
                      val y_bouding: Double,
-                     @transient val partitions: List[(Int, DBScanRectangle)],
+                     @transient val partitions: List[(Int, DBSCANCuboid)],
                      @transient private val labeledPartitionedPoints: RDD[(Int, DBScanLabeledPoint)])
   extends Serializable  with Logging{
 
-  type Margins = (DBScanRectangle, DBScanRectangle, DBScanRectangle) // inner, main, outer
+  type Margins = (DBSCANCuboid, DBSCANCuboid, DBSCANCuboid) // inner, main, outer
   type ClusterId = (Int, Int) //
-  def minimumRectangleSize = 2 * eps
+  def minimumRectangleSize = 2 * eps1
+  def minimunHigh:Double = 2 * eps2
   def labeledPoints: RDD[DBScanLabeledPoint] = {
     labeledPartitionedPoints.values // all labeled points in working space after implementing the DBScan
   }
@@ -91,8 +94,9 @@ class DBScan private(val eps: Double,
       }
     }
   }
-  private def point2Rectangle(point: DBScanPoint, eps: Double): Rectangle = {
-    Rectangle(point.x - eps, point.y - eps, point.x + eps, point.y + eps)
+
+  private def point2Rectangle(point: DBScanPoint, eps1: Double, eps2: Double): DBSCANCuboid = {
+    DBSCANCuboid(point.x - eps1, point.y - eps1, point.t - eps2,point.x + eps1, point.y + eps1, point.t + eps2)
   }
   /**
    * this function for decreasing the number of points duplicated
@@ -103,60 +107,62 @@ class DBScan private(val eps: Double,
    */
 
 
-  private def GetPointWithId(vectors: RDD[Vector], margins: Broadcast[List[((DBScanRectangle, DBScanRectangle, DBScanRectangle), Int)]]): List[(Int, DBScanPoint)] = {
-    val allCells: Set[Rectangle] = new Cell(vectors, x_bounding, y_bouding, eps).getCell(data = vectors)
-    val cellBloomFilter: CellBloomFilter = new CellBloomFilter(data = vectors, allCell = allCells)
-    val countBloomFilter: CountingBloomFilter[String] = cellBloomFilter.buildBloomFilter()
-    val allCell = allCells.zipWithIndex
-    val bitMap: mutable.Map[Int, Int] = cellBloomFilter.getBitMap(allCell = allCell, countingBloomFilter = countBloomFilter, eps = eps, maxPoint = minPoints)
-    println("bitMap:",bitMap.size)
-    var flag=0  //记录有多少个bitMap为0
-//    print(bitMap)
-//    for ((key, value) <- bitMap) {
-//      if(value==1){
-//        flag+=1
-//        print(key,"")
+//  private def GetPointWithId(vectors: RDD[Vector], margins: Broadcast[List[((DBSCANCuboid, DBSCANCuboid, DBSCANCuboid), Int)]]): List[(Int, DBScanPoint)] = {
+//    val allCells: Set[Rectangle] = new Cell(vectors, x_bounding, y_bouding, eps1).getCell(data = vectors)
+//    val cellBloomFilter: CellBloomFilter = new CellBloomFilter(data = vectors, allCell = allCells)
+//    val countBloomFilter: CountingBloomFilter[String] = cellBloomFilter.buildBloomFilter()
+//    val allCell = allCells.zipWithIndex
+//    val bitMap: mutable.Map[Int, Int] = cellBloomFilter.getBitMap(allCell = allCell, countingBloomFilter = countBloomFilter, eps1 = eps1, maxPoint = minPoints)
+//    println("bitMap:",bitMap.size)
+//    var flag=0  //记录有多少个bitMap为0
+////    print(bitMap)
+////    for ((key, value) <- bitMap) {
+////      if(value==1){
+////        flag+=1
+////        print(key,"")
+////      }
+////    }
+////    println("bitmap==1",flag)
+//
+//    var res: List[(Int, DBScanPoint)] = List[(Int, DBScanPoint)]()
+//    val vectorsLocal = vectors.collect()
+////    println("points",vectorsLocal.size)
+//    val loop = new Breaks
+//    for(((_,main,outer), id) <- margins.value) { //遍历每一个分区
+//      for (point <- vectorsLocal) {
+//        val dBScanPoint: DBScanPoint = new DBScanPoint(point)
+//        // 先将分区（main rectangle）内的点放入res"(id, dBScanPoint):",(id,dBScanPoint),
+//        if (main.contains(dBScanPoint)) {
+//          res = res :+ (id, dBScanPoint)
+//          flag+=1
+//        }
+//        // 再判断OR(S1)-S1内的点是否需要复制到本分区S1 &&(!main.contains(dBScanPoint))
+//        else if (outer.contains(dBScanPoint)) { //范围：OR(S1)-S1
+//          val pointRec = point2Rectangle(dBScanPoint, eps1)
+//          val rectangle: Rectangle = Rectangle(main.x, main.y, main.x2, main.y2)
+//          //判断该点是否需要复制到S1，判断条件：点的扩展矩形与S1的相交区域R是否有核心cell
+//          val UnitRectangle: Rectangle = rectangle.getUnit(pointRec) //相交区域R
+////          println("UnitRectangle",UnitRectangle)
+//          loop.breakable {
+//            for ((cell, cellId) <- allCell) {
+////              if(UnitRectangle.hasUnit(cell)){println("true ",cellId)}
+//              if (UnitRectangle.hasUnit(cell) && bitMap(cellId) == 1) {
+//                res = res :+ (id, dBScanPoint)
+//                loop.break()
+//              }
+//            }
+//          }
+//        }
 //      }
 //    }
-//    println("bitmap==1",flag)
-
-    var res: List[(Int, DBScanPoint)] = List[(Int, DBScanPoint)]()
-    val vectorsLocal = vectors.collect()
-//    println("points",vectorsLocal.size)
-    val loop = new Breaks
-    for(((_,main,outer), id) <- margins.value) { //遍历每一个分区
-      for (point <- vectorsLocal) {
-        val dBScanPoint: DBScanPoint = new DBScanPoint(point)
-        // 先将分区（main rectangle）内的点放入res"(id, dBScanPoint):",(id,dBScanPoint),
-        if (main.contains(dBScanPoint)) {
-          res = res :+ (id, dBScanPoint)
-        }
-        // 再判断OR(S1)-S1内的点是否需要复制到本分区S1 &&(!main.contains(dBScanPoint))
-        else if (outer.contains(dBScanPoint)) { //范围：OR(S1)-S1
-          val pointRec = point2Rectangle(dBScanPoint, eps)
-          val rectangle: Rectangle = Rectangle(main.x, main.y, main.x2, main.y2)
-          //判断该点是否需要复制到S1，判断条件：点的扩展矩形与S1的相交区域R是否有核心cell
-          val UnitRectangle: Rectangle = rectangle.getUnit(pointRec) //相交区域R
-//          println("UnitRectangle",UnitRectangle)
-          loop.breakable {
-            for ((cell, cellId) <- allCell) {
-//              if(UnitRectangle.hasUnit(cell)){println("true ",cellId)}
-              if (UnitRectangle.hasUnit(cell) && bitMap(cellId) == 1) {
-                res = res :+ (id, dBScanPoint)
-                loop.break()
-              }
-            }
-          }
-        }
-      }
-    }
-    val resGrouped: Map[Int, List[(Int, DBScanPoint)]] = res.groupBy(_._1)
-    // 输出每个分区中的DBScanPoint数量
-    resGrouped.foreach { case (id, points) =>
-      println(s"Category $id: ${points.length} DBScanPoint(s)")
-    }
-    res
-  }
+//    val resGrouped: Map[Int, List[(Int, DBScanPoint)]] = res.groupBy(_._1)
+//    // 输出每个分区中的DBScanPoint数量
+//    resGrouped.foreach { case (id, points) =>
+//      println(s"Category $id: ${points.length} DBScanPoint(s)")
+//    }
+//    println("main points:",flag)
+//    res
+//  }
 
   private def train(vectors: RDD[Vector]) :DBScan = {
     // generate the smallest rectangles that the space and
@@ -164,9 +170,9 @@ class DBScan private(val eps: Double,
 
     println("About to train")
 
-    val minimumRectangleWithCount = vectors
+    val minimumCuboidWithCount = vectors
       .map(x => {
-        toMinimumBoundingRectangle(x) // give every point the minimum bounding rectangle
+        toMinimumBoundingCuboid(x) // give every point the minimum bounding rectangle
       })
       .map(x => (x, 1))
       .aggregateByKey(0)(_ + _, _ + _) // 先同一个RDD中相同Rectangle数据点相加，然后所有RDD中相同的Rectangle的数据点相加
@@ -176,31 +182,32 @@ class DBScan private(val eps: Double,
 
 
     println("find the best partition for the data space")
-    val localPartitions: List[(DBScanRectangle, Int)]
-    = EvenSplitPartitioner.partition( minimumRectangleWithCount,
+    val localPartitions: List[(DBSCANCuboid, Int)]
+    = EvenSplitPartitioner.partition( minimumCuboidWithCount,
       maxPointsPerPartition,
-      minimumRectangleSize)
+      minimumRectangleSize,
+      minimunHigh)
 
     println(s"Found partitions: $localPartitions")
     localPartitions.foreach(p => println(p.toString()))
 
-    // grow partitions to include eps
-    val localMargins = localPartitions.map({
-      case (p, _) => (p.shrink(eps), p, p.shrink(-eps))
+    // grow partitions to include eps1
+    val localCuboid = localPartitions.map({
+      case (p, _) => (p.shrink(eps1,eps2), p, p.shrink(-eps1,-eps2))
     }).zipWithIndex
 
-    val margins: Broadcast[List[((DBScanRectangle, DBScanRectangle, DBScanRectangle), Int)]] = vectors.context.broadcast(localMargins) // optimations place?
+    val margins: Broadcast[List[((DBSCANCuboid, DBSCANCuboid, DBSCANCuboid), Int)]] = vectors.context.broadcast(localCuboid) // optimations place?
 
 // assign each point to its proper partition
 // Baseline
-//    val duplicated: RDD[(Int, DBScanPoint)] =
-//      for {
-//      point <- vectors.map(new DBScanPoint(_))
-//      ((inner, main, outer), id) <- margins.value // i <- limit, and j <- limits for every i
-//      if outer.contains(point) // optimation place?
-//    } yield (id, point) // the point in the partition with id
+    val duplicated: RDD[(Int, DBScanPoint)] =
+      for {
+      point <- vectors.map(new DBScanPoint(_))
+      ((inner, main, outer), id) <- margins.value // i <- limit, and j <- limits for every i
+      if outer.contains(point) // optimation place?
+    } yield (id, point) // the point in the partition with id
 
-    val duplicated: RDD[(Int, DBScanPoint)] = DBScan.sc.parallelize(GetPointWithId(vectors, margins))
+//    val duplicated: RDD[(Int, DBScanPoint)] = DBScan.sc.parallelize(GetPointWithId(vectors, margins))
     println("duplicated",duplicated.count())
     val numberOfPartitions: Int = localPartitions.size
     println(s"Local partitions size: $numberOfPartitions")
@@ -211,7 +218,7 @@ class DBScan private(val eps: Double,
       .groupByKey(numberOfPartitions) // param: numPartitions
       .flatMapValues((points: Iterable[DBScanPoint]) => {
         println("About to begin the local DBScan")
-        new LocalDBScanNaive(eps, minPoints).fit(points)
+        new LocalDBScanNaive(eps1, eps2, minPoints).fit(points)
       }) // different partition has different clustering
 
     println("find all candidate points for merging clusters and group them => inner margin & outer margin")
@@ -317,14 +324,15 @@ class DBScan private(val eps: Double,
 
         }).values
       })
-    val finalPartitions = localMargins.map {
+    val finalPartitions = localCuboid.map {
       case ((_, p, _), index) => (index, p)
     }
 
     println("Done")
 
     new DBScan(
-      eps,
+      eps1,
+      eps2,
       minPoints,
       maxPointsPerPartition,
       x_bounding,
@@ -341,24 +349,26 @@ class DBScan private(val eps: Double,
    * @param p
    * @return
    */
-  def shiftIfNegative(p: Double): Double= {
+  def shiftIfNegative(p: Double,minimum:Double): Double= {
     if(p < 0) {
-      p - minimumRectangleSize
+      p - minimum
     } else {
       p
     }
   }
-  def corner(p: Double): Double = {
-    (shiftIfNegative(p) / minimumRectangleSize).intValue * minimumRectangleSize
+  def corner(p: Double,minimum:Double): Double = {
+    (shiftIfNegative(p,minimum) / minimum).intValue * minimum
   }
 
-  private def toMinimumBoundingRectangle(vector: Vector): DBScanRectangle = {
+  private def toMinimumBoundingCuboid(vector: Vector): DBSCANCuboid = {
     val point: DBScanPoint = DBScanPoint(vector) // object DBScanPoint
-    val x = corner(point.x)
-    val y = corner(point.y)
-    DBScanRectangle(x, y, x + minimumRectangleSize, y + minimumRectangleSize)
+    val x = corner(point.x,minimumRectangleSize)
+    val y = corner(point.y,minimumRectangleSize)
+    val t = corner(point.t,minimunHigh)
+    DBSCANCuboid(x, y, t, x + minimumRectangleSize, y + minimumRectangleSize, t + minimunHigh)
     /*
-     minimumRectangleSize is 2 * eps
+     minimumRectangleSize is 2 * eps1
+     minimunHigh is 2 * eps2
     */
   }
 
