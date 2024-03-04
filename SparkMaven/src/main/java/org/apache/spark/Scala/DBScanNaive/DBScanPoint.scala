@@ -8,20 +8,17 @@ object DBScanPoint{
 case class DBScanPoint(vector: Vector){
   def x: Double = vector(0)
   def y: Double = vector(1)
-  def t: Double = vector(2)
   def distanceSquared(other: DBScanPoint): Double = {
   // 欧几里得距离
     val dx = other.x - x
     val dy = other.y - y
     dx * dx + dy * dy
+
+
     // 经纬度计算距离
     // x: lon, y: lan
 
-    //    Math.pow(EARTH_R * Math.acos(Math.sin(other.y) * Math.sin(y) +
-    //              Math.cos(other.y) * Math.cos(y) * Math.cos(other.x - x)), 2)
-  }
-
-  def timedistance(other: DBScanPoint): Double = {
-    Math.abs(other.t-t)
+//    Math.pow(EARTH_R * Math.acos(Math.sin(other.y) * Math.sin(y) +
+//              Math.cos(other.y) * Math.cos(y) * Math.cos(other.x - x)), 2)
   }
 }

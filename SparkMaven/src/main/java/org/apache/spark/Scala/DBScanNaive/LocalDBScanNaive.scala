@@ -23,11 +23,11 @@ import org.apache.spark.mllib.linalg.Vectors
 
 import scala.collection.mutable
 
-class LocalDBScanNaive(eps1: Double, eps2:Double, minPoints: Int) extends Logging{
-  val minDistanceSquared: Double = eps1 * eps1
+class LocalDBScanNaive(eps: Double, minPoints: Int) extends Logging{
+  val minDistanceSquared = eps * eps
 
 
-//  def samplePoint = Array(new DBScanLabeledPoint(Vectors.dense(Array(0D, 0D))))
+  def samplePoint = Array(new DBScanLabeledPoint(Vectors.dense(Array(0D, 0D))))
 
 
   def fit(points: Iterable[DBScanPoint]): Iterable[DBScanLabeledPoint] = {
@@ -62,7 +62,7 @@ class LocalDBScanNaive(eps1: Double, eps2:Double, minPoints: Int) extends Loggin
                             all: Array[DBScanLabeledPoint])
   : Iterable[DBScanLabeledPoint] = {
     all.view.filter(other => {
-      point.distanceSquared(other) <= minDistanceSquared && point.timedistance(other) <= eps2
+      point.distanceSquared(other) <= minDistanceSquared
     })
   }
 
