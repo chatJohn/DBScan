@@ -1,6 +1,6 @@
-package org.apache.spark.Scala.DBScan3DNaive
+package org.apache.spark.Scala.utils.partition
 
-
+import org.apache.spark.Scala.DBScan3DNaive.DBScanCube
 import org.apache.spark.internal.Logging
 
 import scala.annotation.tailrec
@@ -80,12 +80,12 @@ class EvenSplitPartition_3D(maxPointsPerPartition: Long, minimumRectangleSize: D
   private def complement(box: DBScanCube, boundary: DBScanCube): DBScanCube = {
     if(box.x == boundary.x && box.y == boundary.y && box.t == boundary.t){
       if(boundary.x2 >= box.x2 && boundary.y2 >= box.y2 && boundary.t2 >= box.t2){
-        if(box.y2 == boundary.y2){
+        if(box.y2 == boundary.y2&&box.t2 == boundary.t2){
           DBScanCube(box.x2, box.y, box.t, boundary.x2, boundary.y2, boundary.t2) //
-        }else if(box.x2 == boundary.x2){
+        }else if(box.x2 == boundary.x2&&box.y2 == boundary.y2){
           DBScanCube(box.x, box.y, box.t2, boundary.x2, boundary.y2, boundary.t2)
         }
-        else if(box.t2 == boundary.t2){
+        else if(box.x2 == boundary.x2&&box.t2 == boundary.t2){
           DBScanCube(box.x, box.y2, box.t, boundary.x2, boundary.y2, boundary.t2)
         }
         else{
@@ -122,15 +122,15 @@ class EvenSplitPartition_3D(maxPointsPerPartition: Long, minimumRectangleSize: D
   private def partition(remaining: List[CubeWithCount], partitioned: List[CubeWithCount],
                         pointsIn: DBScanCube => Int): List[CubeWithCount] = {
     remaining match {
-      case (cube, count):: rest =>
+      case (cube, count) :: rest =>
         if(count > maxPointsPerPartition){
           if(canBeSplit(cube)){
             println(s"About to split $cube")
             def cost: DBScanCube => Int = (rec: DBScanCube) => ((pointsIn(cube) / 2) - pointsIn(rec)).abs
             val (split1, split2) = split(cube, cost)
             println(s"Find the splits: $split1, $split2")
-            val s1 = (split1, pointsIn(split1))
-            val s2 = (split2, pointsIn(split2))
+            val s1: (DBScanCube, Int) = (split1, pointsIn(split1))
+            val s2: (DBScanCube, Int) = (split2, pointsIn(split2))
             partition(s1 :: s2 :: rest, partitioned, pointsIn)
           }else{
             println(s"Can't split: ($cube -> $count)," +
@@ -144,13 +144,14 @@ class EvenSplitPartition_3D(maxPointsPerPartition: Long, minimumRectangleSize: D
     }
   }
 
-  def findPatitions(toSplit: Set[CubeWithCount]): List[CubeWithCount] = {
+  def findPartitions(toSplit: Set[CubeWithCount]): List[CubeWithCount] = {
     val boundingCube: DBScanCube = findBoundingCube(toSplit)
     def pointsIn: DBScanCube => Int = pointsInCube(toSplit, _: DBScanCube)
     val toPartition: List[(DBScanCube, Int)] = List((boundingCube, pointsIn(boundingCube)))
+    println(s"toPartition is ${toPartition}")
     val patitioned: List[(DBScanCube, Int)] = List[CubeWithCount]()
     println("About to start partitioning...")
-    val partitions = partition(toPartition, patitioned, pointsIn)
+    val partitions: List[(DBScanCube, Int)] = partition(toPartition, patitioned, pointsIn)
     println("the Partitions are below:")
     partitions.foreach(println)
     println("Partitioning Done")

@@ -1,6 +1,7 @@
 package org.apache.spark.Scala.DBScan3DNaive
 
 import org.apache.spark.Scala.DBScan3DNaive.DBScanLabeledPoint_3D.Flag
+import org.apache.spark.Scala.utils.partition.EvenSplitPartition_3D
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
@@ -70,7 +71,7 @@ extends Serializable with  Logging{
     }
   }
   def corner(p: Double, minimum: Double): Double = {
-    (shiftIfNegative(p, minimum) / minimum).intValue * minimumRectangleSize
+    (shiftIfNegative(p, minimum) / minimum).intValue * minimum
   }
   private def toMinimumBoundingCube(vector: Vector): DBScanCube = {
     val point: DBScanPoint_3D = DBScanPoint_3D(vector) // object DBScanPoint
@@ -96,6 +97,7 @@ extends Serializable with  Logging{
         maxPointsPerPartition,
         minimumRectangleSize,
         minimumHigh)
+    println(s"local partition size: ${localPartitions.size}")
 
     val localCube: List[((DBScanCube, DBScanCube, DBScanCube), Int)] = localPartitions.map({
       case (p, _) => (p.shrink(distanceEps,timeEps), p, p.shrink(-distanceEps,-timeEps))

@@ -1,4 +1,5 @@
-package org.apache.spark.Scala.utils
+package org.apache.spark.Scala.utils.filter
+
 import org.apache.hadoop.util.bloom.{CountingBloomFilter, Key}
 import org.apache.spark.mllib.linalg.Vector
 
@@ -9,9 +10,6 @@ import org.apache.spark.mllib.linalg.Vector
  * Broadcast the bloom filters to all worker nodes.
  * Filter out the points that are not in the bloom filter before running MR-DBScan.
  */
-
-
-import org.apache.spark.Scala.utils.BloomFilter.filter
 object BloomFilter{
   private val vectorSize: Int = Int.MaxValue
   private val nbHash: Int = 10
