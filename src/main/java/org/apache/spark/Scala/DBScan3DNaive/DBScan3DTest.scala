@@ -13,15 +13,14 @@ import java.util.Date
 object DBScan3DTest {
 
   def main(args: Array[String]): Unit = {
-    println("bnsdujaidba")
-    println("test")
+
     val conf = new SparkConf()
 
       .set("spark.driver.maxResultSize", "10g")
       .set("spark.driver.memory", "6g")
       .setAppName("DBscan_3D")
-//      .setMaster("local[*]") // 在本地模拟运行
-      .setMaster("spark://startserver02:7077") // 在分布式集群中运行
+      .setMaster("local[*]") // 在本地模拟运行
+//      .setMaster("spark://startserver02:7077") // 在分布式集群中运行
     val sparkContext: SparkContext = new SparkContext(conf)
     val fileList: Array[String] = Array[String](args(0)) // Spark中单纯读取一个文件
     val lineRDD: RDD[String] = sparkContext.textFile(fileList.mkString(","), 10)
