@@ -1,17 +1,8 @@
-package org.apache.spark.Scala.utils
+package org.apache.Scala.utils.filter
+
 import org.apache.hadoop.util.bloom.{CountingBloomFilter, Key}
 import org.apache.spark.mllib.linalg.Vector
 
-/**
- * Based the MR-DBScan algorithm, how to  use bloom filter to accelerate the efficiency of this algorithm in spark?
- *
- * Create a bloom filter for each partition of the input data.
- * Broadcast the bloom filters to all worker nodes.
- * Filter out the points that are not in the bloom filter before running MR-DBScan.
- */
-
-
-import org.apache.spark.Scala.utils.BloomFilter.filter
 object BloomFilter{
   private val vectorSize: Int = Int.MaxValue
   private val nbHash: Int = 10
