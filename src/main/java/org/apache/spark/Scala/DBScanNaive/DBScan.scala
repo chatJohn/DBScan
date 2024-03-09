@@ -6,7 +6,7 @@ import org.apache.spark.Scala.DBScanBloom_BitMap.{Cell, CellBloomFilter, Rectang
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.Scala.DBScanNaive.DBScanLabeledPoint.Flag
-import org.apache.spark.Scala.utils.partition.EvenSplitPartitioner
+import org.apache.spark.Scala.utils.partition.EvenSplitPartition
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
@@ -160,7 +160,7 @@ class DBScan private(val eps: Double,
 
     println("find the best partition for the data space")
     val localPartitions: List[(DBScanRectangle, Int)]
-    = EvenSplitPartitioner.partition( minimumRectangleWithCount,
+    = EvenSplitPartition.partition( minimumRectangleWithCount,
       maxPointsPerPartition,
       minimumRectangleSize)
 

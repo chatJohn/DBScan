@@ -9,11 +9,11 @@ import scala.annotation.tailrec
 * Helper method for calling the partitioner
 * */
 
-object EvenSplitPartitioner {
+object EvenSplitPartition {
   def partition(toSplit: Set[(DBScanRectangle, Int)],
                 maxPointsPerPartition: Long,
                 minimunRectangleSize: Double): List[(DBScanRectangle, Int)] ={
-    new EvenSplitPartitioner(maxPointsPerPartition, minimunRectangleSize).findPartitions(toSplit)
+    new EvenSplitPartition(maxPointsPerPartition, minimunRectangleSize).findPartitions(toSplit)
   }
 }
 
@@ -22,7 +22,7 @@ object EvenSplitPartitioner {
  * @param maxPointsPerPartition 每个分区中的最多的点数
  * @param minimumRectangleSize 最小的矩形大小
  */
-class EvenSplitPartitioner(maxPointsPerPartition:Long, minimumRectangleSize: Double) extends Logging{
+class EvenSplitPartition(maxPointsPerPartition:Long, minimumRectangleSize: Double) extends Logging{
   type RectangleWithCount = (DBScanRectangle, Int)
 
   /*
