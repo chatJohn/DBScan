@@ -4,14 +4,13 @@ import org.apache.spark.Scala.DBScan3DNaive.DBScanCube
 import scala.collection.mutable
 import scala.math.sqrt
 
-case class Graph(vertices: Set[Int], edges: Map[(Int, Int), Double])
+case class Graph(vertices: mutable.SortedSet[Int], edges: Map[(Int, Int), Double])
 
 object CellGraph_3D{
 
   def getcellGraph(pointofCube:Set[(Int, DBScanCube, Int)],bounding:Double): Graph = {
     new CellGraph_3D(pointofCube,bounding).getGraph()
   }
-  println("sssss")
 
 }
 
@@ -25,7 +24,7 @@ case class CellGraph_3D(pointofCube:Set[(Int, DBScanCube, Int)],bounding:Double)
   }
 
   def getGraph(): Graph={
-    var vertices: Set[Int] = Set()    //
+    var vertices: mutable.SortedSet[Int] = mutable.SortedSet()
     var edges: mutable.Map[(Int, Int), Double] = mutable.Map()
     for {
       (id1, cube1, count1) <- pointofCube

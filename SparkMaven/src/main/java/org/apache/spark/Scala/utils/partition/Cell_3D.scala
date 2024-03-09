@@ -55,11 +55,22 @@ case class Cell_3D(pointCube: Set[(DBScanCube, Int)], bounding: Double) {
       t <- t_split.init
     } yield DBScanCube(x, y, t, x + bounding, y + bounding, t + bounding)
     val cubetemp = cubes.toSet
+
+    //过滤掉点数为0的Cube
+    val cubetemp1: Set[(DBScanCube, Int)] = cubetemp
+      .map { cube =>
+        (cube, pointsIn(cube))
+      }
+      .filter { case (_, count) =>
+        count != 0
+      }
+    //给Cube标记索引
     var index = 0
-    val pointofcube: Set[(Int,DBScanCube, Int)] = cubetemp.map { cube =>
+    val pointofcube: Set[(Int,DBScanCube, Int)] = cubetemp1.map { case(cube,count) =>
       index=index+1
-      (index ,cube, pointsIn(cube))
+      (index ,cube, count)
     }
+
     pointofcube
   }
 }
