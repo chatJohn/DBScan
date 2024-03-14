@@ -47,6 +47,12 @@ case class CellGraph_3D(pointofCube:Set[(Int, DBScanCube, Int)], x_bounding:Doub
         IsolatedCubeSet.add((id2, cube2, count2))
       }
     }
+    if(IsolatedCubeSet.size != 0){
+      IsolatedCubeSet.foreach(x => {
+        vertices += x._1
+        edges += (-1, x._1) -> 0 // -1 means not neighbors, and it's weight is 0
+      })
+    }
     //不可变映射
     val immutableEdges = edges.toMap
 
