@@ -8,19 +8,19 @@ case class Graph(vertices: mutable.SortedSet[Int], edges: Map[(Int, Int), Double
 
 object CellGraph_3D{
 
-  def getcellGraph(pointofCube:Set[(Int, DBScanCube, Int)],bounding:Double): Graph = {
-    new CellGraph_3D(pointofCube,bounding).getGraph()
+  def getcellGraph(pointofCube:Set[(Int, DBScanCube, Int)],x_bounding: Double,y_bounding: Double,t_bounding: Double): Graph = {
+    new CellGraph_3D(pointofCube,x_bounding,y_bounding,t_bounding).getGraph()
   }
 
 }
 
 
-case class CellGraph_3D(pointofCube:Set[(Int, DBScanCube, Int)],bounding:Double) {
+case class CellGraph_3D(pointofCube:Set[(Int, DBScanCube, Int)],x_bounding: Double,y_bounding: Double,t_bounding: Double) {
   def neighbor(cube1: DBScanCube, cube2: DBScanCube): Boolean ={
     val dx = Math.abs(cube1.x - cube2.x)
     val dy = Math.abs(cube1.y - cube2.y)
     val dt = Math.abs(cube1.t - cube2.t)
-    dx <= bounding && dy <= bounding && dt <= bounding
+    dx <= x_bounding && dy <= y_bounding && dt <= t_bounding
   }
 
   def getGraph(): Graph={

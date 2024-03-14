@@ -6,17 +6,16 @@ import org.apache.spark.Scala.DBScan3DNaive.DBScanCube
 object Cell_3D{
   /**
    * Split the giving Space into some Cubes
-   * @param bounding
    * @return the Set of Cubes
    */
-  def getCube(pointCube:Set[(DBScanCube, Int)], bounding: Double): Set[(Int,DBScanCube, Int)] = {
-    new Cell_3D(pointCube, bounding).getSplits() // doLALALAL
+  def getCube(pointCube:Set[(DBScanCube, Int)],x_bounding: Double,y_bounding: Double,t_bounding: Double): Set[(Int,DBScanCube, Int)] = {
+    new Cell_3D(pointCube, x_bounding,y_bounding,t_bounding).getSplits() // doLALALAL
   }
   println("sssss")
 }
 
 
-case class Cell_3D(pointCube: Set[(DBScanCube, Int)], bounding: Double) {
+case class Cell_3D(pointCube: Set[(DBScanCube, Int)], x_bounding: Double,y_bounding: Double,t_bounding: Double) {
   type CubeWithCount = (DBScanCube, Int)
   def pointsInCube(space: Set[CubeWithCount], cube: DBScanCube): Int = {
     val count: Int = space.view
@@ -42,18 +41,18 @@ case class Cell_3D(pointCube: Set[(DBScanCube, Int)], bounding: Double) {
   }
   def getSplits(): Set[(Int,DBScanCube, Int)] ={
     val boundingCube: DBScanCube = getMinimalBounding(pointCube)
-    doSplitWithBounding(boundingCube, bounding)
+    doSplitWithBounding(boundingCube, x_bounding,y_bounding,t_bounding)
   }
-  def doSplitWithBounding(originCube: DBScanCube, bounding: Double): Set[(Int, DBScanCube, Int)] = {
-    val x_split = (originCube.x until originCube.x2 by bounding).toList :+ originCube.x2
-    val y_split = (originCube.y until originCube.y2 by bounding).toList :+ originCube.y2
-    val t_split = (originCube.t until originCube.t2 by bounding).toList :+ originCube.t2
+  def doSplitWithBounding(originCube: DBScanCube, x_bounding: Double,y_bounding: Double,t_bounding: Double): Set[(Int, DBScanCube, Int)] = {
+    val x_split = (originCube.x until originCube.x2 by x_bounding).toList :+ originCube.x2
+    val y_split = (originCube.y until originCube.y2 by y_bounding).toList :+ originCube.y2
+    val t_split = (originCube.t until originCube.t2 by t_bounding).toList :+ originCube.t2
     // n^3 ? high cost of complexity
     val cubes = for {
       x <- x_split.init
       y <- y_split.init
       t <- t_split.init
-    } yield DBScanCube(x, y, t, x + bounding, y + bounding, t + bounding)
+    } yield DBScanCube(x, y, t, x + x_bounding, y + y_bounding, t + t_bounding)
     val cubetemp = cubes.toSet
 
     //过滤掉点数为0的Cube
