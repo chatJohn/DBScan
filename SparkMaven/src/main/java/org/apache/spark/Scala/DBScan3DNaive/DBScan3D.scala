@@ -1,11 +1,11 @@
 package org.apache.spark.Scala.DBScan3DNaive
 
 import org.apache.spark.Scala.DBScan3DNaive.DBScanLabeledPoint_3D.Flag
+import org.apache.spark.Scala.utils.partition.EvenSplitPartition_3D
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
-
 
 object DBScan3D{
   def train(data: RDD[Vector],
@@ -14,7 +14,7 @@ object DBScan3D{
             minPoints: Int,
             maxPointsPerPartitions: Int
            ): DBScan3D = {
-    new DBScan3D(distanceEps, timeEps, minPoints, maxPointsPerPartitions, null, null).train(data)
+    new DBScan3D(distanceEps, timeEps, minPoints, maxPointsPerPartitions,null, null).train(data)
   }
 }
 
@@ -82,7 +82,7 @@ extends Serializable with  Logging{
 
   }
 
-  private def train(data: RDD[Vector]): DBScan3D = {
+  private def train(data: RDD[Vector]):DBScan3D = {
 
     val minimumCubeWithCount: Set[(DBScanCube, Int)] = data
       .map(x => {
@@ -92,6 +92,7 @@ extends Serializable with  Logging{
       .aggregateByKey(0)(_ + _, _ + _) // 先同一个RDD中相同Rectangle数据点相加，然后所有RDD中相同的Rectangle的数据点相加
       .collect()
       .toSet // 构建全局数据点的立方体
+    print(minimumCubeWithCount)
 
     val localPartitions: List[(DBScanCube, Int)]
       = EvenSplitPartition_3D.partition(minimumCubeWithCount,
@@ -99,17 +100,21 @@ extends Serializable with  Logging{
         minimumRectangleSize,
         minimumHigh,distanceEps,timeEps)
 
+
     val localCube: List[((DBScanCube, DBScanCube, DBScanCube), Int)] = localPartitions.map({
       case (p, _) => (p.shrink(distanceEps,timeEps), p, p.shrink(-distanceEps,-timeEps))
     }).zipWithIndex
     val margins: Broadcast[List[((DBScanCube, DBScanCube, DBScanCube), Int)]] = data.context.broadcast(localCube)
 
-    // BaseLine method
+     //BaseLine method
     val duplicated: RDD[(Int, DBScanPoint_3D)] = for {
       point <- data.map(new DBScanPoint_3D(_))
       ((inner, main, outer), id) <- margins.value
       if outer.contains(point)
     } yield (id, point) // the point in the partition with id
+
+    val duplicatedCount: Long = duplicated.count()
+    println("Total count of duplicated elements: " + duplicatedCount)
 
     val numberOfPartitions: Int = localPartitions.size
     println("perform local DBScan")

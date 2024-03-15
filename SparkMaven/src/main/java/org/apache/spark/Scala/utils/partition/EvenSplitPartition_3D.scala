@@ -1,6 +1,6 @@
-package org.apache.spark.Scala.DBScan3DNaive
+package org.apache.spark.Scala.utils.partition
 
-
+import org.apache.spark.Scala.DBScan3DNaive.DBScanCube
 import org.apache.spark.internal.Logging
 
 import scala.annotation.tailrec
@@ -129,15 +129,42 @@ class EvenSplitPartition_3D(maxPointsPerPartition: Long, minimumRectangleSize: D
         if(count > maxPointsPerPartition){
           if(canBeSplit(cube)){
             println(s"About to split $cube")
-
+            //ESP
             def cost1: DBScanCube => Int = (rec: DBScanCube) => ((pointsIn(cube) / 2) - pointsIn(rec)).abs
-            def cost2(rectangle1: DBScanCube):Int={
-              val points1 = pointsIn(rectangle1.shrink(distanceEps,timeEps))
-              val points2 = pointsIn(rectangle1)
-              val rectangle2: DBScanCube = complement(rectangle1, cube)
-              val points3 = pointsIn(rectangle2.shrink(distanceEps,timeEps))
-              val points4 = pointsIn(rectangle2)
-              points2 - points1 + points4 - points3
+            //RBP
+            def cost2(rec: DBScanCube):Int={
+              val points1 = pointsIn(rec)
+              val points2 = pointsIn(rec.shrink(distanceEps,timeEps))
+//              println("points1,points2",points1,points2)
+              val rec2: DBScanCube = complement(rec, cube)
+              val points3 = pointsIn(rec2)
+              val points4 = pointsIn(rec2.shrink(distanceEps,timeEps))
+//              println("points3,points4",points3,points4)
+              points1 - points2 + points3 - points4
+            }
+            //ESP+RBP
+            def cost3(rec: DBScanCube):Double={
+              val a = 0.8
+              val b = 1-a
+              var ESPcost = 0
+              if(pointsIn(cube)/2!=0){
+                ESPcost = ESPcost + ((pointsIn(cube)/2) - pointsIn(rec)).abs/(pointsIn(cube)/2)
+              }
+              val points1 = pointsIn(rec)
+              val points2 = pointsIn(rec.shrink(distanceEps,timeEps))
+              //              println("points1,points2",points1,points2)
+              val rec2: DBScanCube = complement(rec, cube)
+              val points3 = pointsIn(rec2)
+              val points4 = pointsIn(rec2.shrink(distanceEps,timeEps))
+              //              println("points3,points4",points3,points4)
+              var RBPcost = 0
+              if(points1!=0){
+                RBPcost = RBPcost + (points1 - points2)/points1
+              }
+              if(points3!=0){
+                RBPcost = RBPcost + (points3 - points4)/points3
+              }
+              a * ESPcost + b * RBPcost
             }
             val (split1, split2) = split(cube, cost2)
             println(s"Find the splits: $split1, $split2")

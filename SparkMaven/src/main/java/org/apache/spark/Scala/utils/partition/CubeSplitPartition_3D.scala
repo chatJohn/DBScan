@@ -6,14 +6,15 @@ import org.apache.spark.Scala.utils.partition.CellGraph_3D.getcellGraph
 import scala.util.control.Breaks._
 import scala.collection.{breakOut, mutable}
 
-object CubeSplitPartition{
-  def getPartition(pointCube:Set[(DBScanCube, Int)], x_bounding: Double,y_bounding: Double,t_bounding: Double,maxPointsPerPartition:Int): List[Set[DBScanCube]] = {
-    new CubeSplitPartition(pointCube,x_bounding,y_bounding,t_bounding,maxPointsPerPartition).getSplits()
+object CubeSplitPartition_3D{
+  def getPartition(pointCube:Set[(DBScanCube, Int)], x_bounding: Double,y_bounding:
+  Double,t_bounding: Double,maxPointsPerPartition:Int): List[Set[DBScanCube]] = {
+    new CubeSplitPartition_3D(pointCube,x_bounding,y_bounding,t_bounding,maxPointsPerPartition).getSplits()
   }
 }
 
 
-case class CubeSplitPartition(pointCube:Set[(DBScanCube, Int)], x_bounding: Double,y_bounding: Double,t_bounding: Double,maxPointsPerPartition:Int) {
+case class CubeSplitPartition_3D(pointCube:Set[(DBScanCube, Int)], x_bounding: Double, y_bounding: Double, t_bounding: Double, maxPointsPerPartition:Int) {
   def getSplits(): List[Set[DBScanCube]] = {
     val pointofCube: Set[(Int, DBScanCube, Int)] = getCube(pointCube,x_bounding,y_bounding,t_bounding)
     val cellgraph: Graph = getcellGraph(pointofCube,x_bounding,y_bounding,t_bounding)

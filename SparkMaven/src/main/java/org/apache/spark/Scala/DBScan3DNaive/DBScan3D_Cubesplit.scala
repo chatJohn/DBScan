@@ -3,11 +3,11 @@ package org.apache.spark.Scala.DBScan3DNaive
 import org.apache.spark.Scala.DBScan3DNaive.DBScanLabeledPoint_3D.Flag
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
-import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
-import org.apache.spark.Scala.utils.partition.CubeSplitPartition
+import org.apache.spark.rdd.RDD
+import org.apache.spark.Scala.utils.partition.CubeSplitPartition_3D
 
-object DBScan3D{
+object DBScan3D_cubesplit{
   def train(data: RDD[Vector],
             distanceEps: Double,
             timeEps: Double,
@@ -16,20 +16,20 @@ object DBScan3D{
             x_bounding: Double,
             y_bounding: Double,
             t_bounding: Double
-           ): DBScan3D = {
-    new DBScan3D(distanceEps, timeEps, minPoints, maxPointsPerPartitions,x_bounding,y_bounding,t_bounding,null, null).train(data)
+           ): DBScan3D_cubesplit = {
+    new DBScan3D_cubesplit(distanceEps, timeEps, minPoints, maxPointsPerPartitions,x_bounding,y_bounding,t_bounding,null, null).train(data)
   }
 }
 
-class DBScan3D private(val distanceEps: Double,
-                       val timeEps: Double,
-                       val minPoints: Int,
-                       val maxPointsPerPartition: Int,
-                       val x_bounding: Double,
-                       val y_bounding: Double,
-                       val t_bounding: Double,
-                       @transient val partitions: List[(Int, DBScanCube)],
-                       @transient private val labeledPartitionedPoints: RDD[(Int, DBScanLabeledPoint_3D)])
+class DBScan3D_cubesplit private(val distanceEps: Double,
+                                 val timeEps: Double,
+                                 val minPoints: Int,
+                                 val maxPointsPerPartition: Int,
+                                 val x_bounding: Double,
+                                 val y_bounding: Double,
+                                 val t_bounding: Double,
+                                 @transient val partitions: List[(Int, DBScanCube)],
+                                 @transient private val labeledPartitionedPoints: RDD[(Int, DBScanLabeledPoint_3D)])
   extends Serializable with  Logging{
   type Margin = Set[(DBScanCube, DBScanCube, DBScanCube)]
   type ClusterID = (Int, Int)
@@ -90,7 +90,7 @@ class DBScan3D private(val distanceEps: Double,
 
   }
 
-  private def train(data: RDD[Vector]): DBScan3D = {
+  private def train(data: RDD[Vector]): DBScan3D_cubesplit = {
 
     val minimumCubeWithCount: Set[(DBScanCube, Int)] = data
       .map(x => {
@@ -104,7 +104,7 @@ class DBScan3D private(val distanceEps: Double,
 
     // New method
     val localPartitions: List[Set[DBScanCube]]
-    = CubeSplitPartition.getPartition(minimumCubeWithCount,
+    = CubeSplitPartition_3D.getPartition(minimumCubeWithCount,
       x_bounding,
       y_bounding,
       t_bounding,
@@ -236,7 +236,7 @@ class DBScan3D private(val distanceEps: Double,
       })
 
     println("Done")
-    new DBScan3D(
+    new DBScan3D_cubesplit(
       distanceEps,
       timeEps,
       minPoints,
