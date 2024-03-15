@@ -13,9 +13,12 @@ object DBScan3D{
             distanceEps: Double,
             timeEps: Double,
             minPoints: Int,
-            maxPointsPerPartitions: Int
+            maxPointsPerPartitions: Int,
+            x_bounding: Double,
+            y_bounding: Double,
+            t_bounding: Double
            ): DBScan3D = {
-    new DBScan3D(distanceEps, timeEps, minPoints, maxPointsPerPartitions, null, null).train(data)
+    new DBScan3D(distanceEps, timeEps, minPoints, maxPointsPerPartitions, x_bounding, y_bounding, t_bounding, null, null).train(data)
   }
 }
 
@@ -23,6 +26,9 @@ class DBScan3D private(val distanceEps: Double,
                        val timeEps: Double,
                        val minPoints: Int,
                        val maxPointsPerPartition: Int,
+                       val x_bounding: Double,
+                       val y_bounding: Double,
+                       val t_bounding: Double,
                        @transient val partitions: List[(Int, DBScanCube)],
                        @transient private val labeledPartitionedPoints: RDD[(Int, DBScanLabeledPoint_3D)])
 extends Serializable with  Logging{
@@ -222,6 +228,9 @@ extends Serializable with  Logging{
       timeEps,
       minPoints,
       maxPointsPerPartition,
+      x_bounding,
+      y_bounding,
+      t_bounding,
       finalPartitions,
       labeledInner.union(labeledOuter))
   }

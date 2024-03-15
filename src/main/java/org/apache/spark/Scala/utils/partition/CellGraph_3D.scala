@@ -28,6 +28,8 @@ case class CellGraph_3D(pointofCube:Set[(Int, DBScanCube, Int)], x_bounding:Doub
     var edges: mutable.Map[(Int, Int), Double] = mutable.Map()
     // create temp structure which contains some isolated cubes
     var IsolatedCubeSet: mutable.Set[(Int, DBScanCube, Int)] = mutable.Set[(Int, DBScanCube, Int)]()
+    // create the visited set to mark whether the cube is visited, as the cube is added into vertices or not
+    var visitedCube: mutable.Set[(Int, DBScanCube, Int)] = mutable.Set[(Int, DBScanCube, Int)]()
     for {
       (id1, cube1, count1) <- pointofCube
       (id2, cube2, count2) <- pointofCube if id1 < id2 // 避免重复边和自环
@@ -40,6 +42,7 @@ case class CellGraph_3D(pointofCube:Set[(Int, DBScanCube, Int)], x_bounding:Doub
         vertices += id2
 
         edges += (id1, id2) -> weight
+        visitedCube.add((id1, cube1, count1))
         if(IsolatedCubeSet.contains((id2, cube2, count2))){
           IsolatedCubeSet.remove((id2, cube2, count2))
         }
@@ -49,9 +52,11 @@ case class CellGraph_3D(pointofCube:Set[(Int, DBScanCube, Int)], x_bounding:Doub
     }
     if(IsolatedCubeSet.size != 0){
       IsolatedCubeSet.foreach(x => {
-        vertices += x._1
-        edges += (-1, x._1) -> 0 // -1 means not neighbors, and it's weight is 0
-      })
+          if(!visitedCube.contains(x)){
+            vertices += x._1
+            edges += (-1, x._1) -> 0 // -1 means not neighbors, and it's weight is 0
+          }
+        })
     }
     //不可变映射
     val immutableEdges = edges.toMap
