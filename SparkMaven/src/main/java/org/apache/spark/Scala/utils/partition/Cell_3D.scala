@@ -1,5 +1,7 @@
 package org.apache.spark.Scala.utils.partition
 
+import java.io.PrintWriter
+
 import org.apache.spark.Scala.DBScan3DNaive.DBScanCube
 
 
@@ -11,7 +13,6 @@ object Cell_3D{
   def getCube(pointCube:Set[(DBScanCube, Int)],x_bounding: Double,y_bounding: Double,t_bounding: Double): Set[(Int,DBScanCube, Int)] = {
     new Cell_3D(pointCube, x_bounding,y_bounding,t_bounding).getSplits() // doLALALAL
   }
-  println("sssss")
 }
 
 
@@ -69,6 +70,13 @@ case class Cell_3D(pointCube: Set[(DBScanCube, Int)], x_bounding: Double,y_bound
       index=index+1
       (index ,cube, count)
     }
+
+    val filePath = "D:/START/distribute-ST-cluster/code/Louvain/cube.txt"
+    val writer = new PrintWriter(filePath)
+    pointofcube.foreach { case (id,cube,count) =>
+      writer.println(s"$id\t$count") //"源节点 目标节点 权重"
+    }
+    writer.close()
 
     pointofcube
   }

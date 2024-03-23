@@ -100,8 +100,8 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
       .aggregateByKey(0)(_ + _, _ + _) // 先同一个RDD中相同Rectangle数据点相加，然后所有RDD中相同的Rectangle的数据点相加
       .collect()
       .toSet // 构建全局数据点的立方体
-    print(minimumCubeWithCount)
-
+    println("data",data.count())
+    println("minimumCubeWithCount",minimumCubeWithCount.map(_._2).sum)
     // New method
     val localPartitions: List[Set[DBScanCube]]
     = CubeSplitPartition_3D.getPartition(minimumCubeWithCount,

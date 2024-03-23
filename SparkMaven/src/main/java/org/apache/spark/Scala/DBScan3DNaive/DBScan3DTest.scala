@@ -71,7 +71,7 @@ object DBScan3DTest {
 
     val startTime = System.currentTimeMillis()
 
-//    val DBScanRes: DBScan3D = DBScan3D.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition,bounding)
+//    val DBScanRes: DBScan3D = DBScan3D.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition)
     val DBScanRes: DBScan3D_cubesplit = DBScan3D_cubesplit.train(VectorRDD, distanceEps,
       timeEps, minPoints, maxPointsPerPartition, x_bounding, y_bounding, t_bounding)
 
@@ -79,8 +79,8 @@ object DBScan3DTest {
     val total = endTime - startTime
     println(s"Total Time Cost: $total")
 
-//    DBScanRes.labeledPoints.coalesce(1).sortBy(x => x.cluster).saveAsTextFile("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\result")
-    DBScanRes.labeledPoints.coalesce(1).sortBy(x => x.cluster).saveAsTextFile(args(1))
+    DBScanRes.labeledPoints.coalesce(1).sortBy(x => x.cluster).saveAsTextFile("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\result")
+//    DBScanRes.labeledPoints.coalesce(1).sortBy(x => x.cluster).saveAsTextFile(args(1))
     sparkContext.stop()
   }
 }

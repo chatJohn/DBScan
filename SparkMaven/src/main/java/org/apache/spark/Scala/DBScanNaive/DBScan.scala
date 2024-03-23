@@ -165,14 +165,15 @@ class DBScan private(val eps: Double,
     val margins: Broadcast[List[((DBScanRectangle, DBScanRectangle, DBScanRectangle), Int)]] = vectors.context.broadcast(localMargins) // optimations place?
 
   // assign each point to its proper partition
-      val duplicated: RDD[(Int, DBScanPoint)] = for {
+    val duplicated: RDD[(Int, DBScanPoint)] = for {
         point <- vectors.map(new DBScanPoint(_))
         ((inner, main, outer), id) <- margins.value // i <- limit, and j <- limits for every i
   //      if outer.contains(point) // optimation place?
         // ==> the change version
         if outer.contains(point)
-      } yield (id, point) // the point in the partition with id
-
+    } yield (id, point) // the point in the partition with id
+    val duplicatedCount: Long = duplicated.count()
+    println("Total count of duplicated elements: " + duplicatedCount)
     // first to filter the outer point
     //    vectors.map(x => new DBScanPoint(x)).filter()
 

@@ -16,12 +16,17 @@ object CubeSplitPartition_3D{
 
 case class CubeSplitPartition_3D(pointCube:Set[(DBScanCube, Int)], x_bounding: Double, y_bounding: Double, t_bounding: Double, maxPointsPerPartition:Int) {
   def getSplits(): List[Set[DBScanCube]] = {
+    println("Points", pointCube.map(_._2).sum)
     val pointofCube: Set[(Int, DBScanCube, Int)] = getCube(pointCube,x_bounding,y_bounding,t_bounding)
+    println("Points in cube",pointofCube.map(_._3).sum)
+    println("Cubes",pointofCube.size)
     val cellgraph: Graph = getcellGraph(pointofCube,x_bounding,y_bounding,t_bounding)
+    println("vertices",cellgraph.vertices.size,"edges",cellgraph.edges.size)
     println("About to start partitioning...")
     val partitions = partition(cellgraph, pointofCube)
     println("the Partitions are below:")
-    partitions.foreach(println)
+//    partitions.foreach(println)
+    println(partitions.size)
     println("Partitioning Done")
     partitions
   }

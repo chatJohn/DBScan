@@ -166,7 +166,7 @@ class EvenSplitPartition_3D(maxPointsPerPartition: Long, minimumRectangleSize: D
               }
               a * ESPcost + b * RBPcost
             }
-            val (split1, split2) = split(cube, cost2)
+            val (split1, split2) = split(cube, cost1)
             println(s"Find the splits: $split1, $split2")
             val s1 = (split1, pointsIn(split1))
             val s2 = (split2, pointsIn(split2))
