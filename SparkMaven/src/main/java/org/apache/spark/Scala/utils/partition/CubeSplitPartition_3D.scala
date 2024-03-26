@@ -1,27 +1,31 @@
 package org.apache.spark.Scala.utils.partition
 
-import org.apache.spark.Scala.DBScan3DNaive.DBScanCube
+import org.apache.spark.Scala.DBScan3DNaive.{DBScanCube, DBScanPoint_3D}
 import org.apache.spark.Scala.utils.partition.Cell_3D.getCube
 import org.apache.spark.Scala.utils.partition.CellGraph_3D.getcellGraph
-import scala.util.control.Breaks._
-import scala.collection.{breakOut, mutable}
+
+import scala.util.control.Breaks
 
 object CubeSplitPartition_3D{
-  def getPartition(pointCube:Set[(DBScanCube, Int)], x_bounding: Double,y_bounding:
+  def getPartition(points:Array[DBScanPoint_3D], x_bounding: Double,y_bounding:
   Double,t_bounding: Double,maxPointsPerPartition:Int): List[Set[DBScanCube]] = {
-    new CubeSplitPartition_3D(pointCube,x_bounding,y_bounding,t_bounding,maxPointsPerPartition).getSplits()
+    new CubeSplitPartition_3D(points,x_bounding,y_bounding,t_bounding,maxPointsPerPartition).getSplits()
   }
 }
 
 
-case class CubeSplitPartition_3D(pointCube:Set[(DBScanCube, Int)], x_bounding: Double, y_bounding: Double, t_bounding: Double, maxPointsPerPartition:Int) {
+case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Double, y_bounding: Double, t_bounding: Double, maxPointsPerPartition:Int) {
   def getSplits(): List[Set[DBScanCube]] = {
-    println("Points", pointCube.map(_._2).sum)
-    val pointofCube: Set[(Int, DBScanCube, Int)] = getCube(pointCube,x_bounding,y_bounding,t_bounding)
-    println("Points in cube",pointofCube.map(_._3).sum)
-    println("Cubes",pointofCube.size)
+    val pointofCube: Set[(Int, DBScanCube, Int)] = getCube(points,x_bounding,y_bounding,t_bounding)
+    var sum2 = 0
+    for ((id,cube,count)<- pointofCube) {
+      sum2+=count
+    }
+    println("point in Cube",sum2)
+
     val cellgraph: Graph = getcellGraph(pointofCube,x_bounding,y_bounding,t_bounding)
     println("vertices",cellgraph.vertices.size,"edges",cellgraph.edges.size)
+
     println("About to start partitioning...")
     val partitions = partition(cellgraph, pointofCube)
     println("the Partitions are below:")
@@ -52,15 +56,18 @@ case class CubeSplitPartition_3D(pointCube:Set[(DBScanCube, Int)], x_bounding: D
         // 权重从小到大排序
         val sortedEdges = connectedEdges.sortBy { case (_, weight) => weight }
 
-        for(((_, v2), _) <- sortedEdges){
-          if(sum<maxPointsPerPartition){
-            pointofCube.find { case (idx, cube, count) => idx == v2 } match {
-              case Some((_, cube, count)) =>
-                sum += count
-                cubelist += cube
+        val loop = new Breaks
+        loop.breakable {
+          for (((_, v2), _) <- sortedEdges) {
+            if (sum < maxPointsPerPartition) {
+              pointofCube.find { case (idx, cube, count) => idx == v2 } match {
+                case Some((_, cube, count)) =>
+                  sum += count
+                  cubelist += cube
+              }
             }
+            else loop.break()
           }
-          else break
         }
         cubepartition = cubelist :: cubepartition
       }

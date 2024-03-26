@@ -12,8 +12,7 @@ object DBScan3DTest {
 //spark submit --数据集路径 --result路径 --distanceEps --timeEps --minPoints --maxPointsPerPartition
   def main(args: Array[String]): Unit = {
     val directoryPath = "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id"
-//    val fileList = Array("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\1.txt",
-//      "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\2.txt"
+//    val fileList = Array("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\100.txt"
 //    )
     val fileList = (100 to 110).map(i => s"$directoryPath\\$i.txt").toArray
 //    val fileList = Array(args(0))

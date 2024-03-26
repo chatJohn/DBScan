@@ -2,7 +2,7 @@ package org.apache.spark.Scala.utils.partition
 
 import java.io.PrintWriter
 
-import org.apache.spark.Scala.DBScan3DNaive.DBScanCube
+import org.apache.spark.Scala.DBScan3DNaive.{DBScanCube, DBScanPoint_3D}
 
 
 object Cell_3D{
@@ -10,34 +10,41 @@ object Cell_3D{
    * Split the giving Space into some Cubes
    * @return the Set of Cubes
    */
-  def getCube(pointCube:Set[(DBScanCube, Int)],x_bounding: Double,y_bounding: Double,t_bounding: Double): Set[(Int,DBScanCube, Int)] = {
-    new Cell_3D(pointCube, x_bounding,y_bounding,t_bounding).getSplits() // doLALALAL
+  def getCube(pointCube:Array[DBScanPoint_3D],x_bounding: Double,y_bounding: Double,t_bounding: Double): Set[(Int,DBScanCube, Int)] = {
+    new Cell_3D(pointCube, x_bounding,y_bounding,t_bounding).getSplits()
   }
 }
 
 
-case class Cell_3D(pointCube: Set[(DBScanCube, Int)], x_bounding: Double,y_bounding: Double,t_bounding: Double) {
-  type CubeWithCount = (DBScanCube, Int)
-  def pointsInCube(space: Set[CubeWithCount], cube: DBScanCube): Int = {
-    val count: Int = space.view
-      .filter({
-        case (current, _) => cube.contains(current)
-      })
-      .foldLeft(0)({
-        case (total, (_, currentCubeCount)) => total + currentCubeCount
-      })
+case class Cell_3D(pointCube: Array[DBScanPoint_3D], x_bounding: Double,y_bounding: Double,t_bounding: Double) {
+//  def pointsInCube(space: Set[(DBScanCube, Int)], cube: DBScanCube): Int = {
+//    val count: Int = space.view
+//      .filter({
+//        case (current, _) => cube.contains(current)
+//      })
+//      .foldLeft(0)({
+//        case (total, (_, currentCubeCount)) => total + currentCubeCount
+//      })
+//    count
+//  }
+//  def pointsIn: DBScanCube => Int = pointsInCube(pointCube, _: DBScanCube)
+  def pointsIn(cube: DBScanCube): Int = {
+    var count: Int = 0
+    for (point<- pointCube) {
+      if(cube.contains(point)){
+        count = count + 1
+      }
+    }
     count
   }
-  def pointsIn: DBScanCube => Int = pointsInCube(pointCube, _: DBScanCube)
-
-  def getMinimalBounding(pointCube: Set[(DBScanCube, Int)]): DBScanCube = {
-    val Cube: Set[DBScanCube] = pointCube.map(_._1)
-    val x_min: Double = Cube.map(x => x.x).toList.min
-    val x_max: Double = Cube.map(x => x.x2).toList.max
-    val y_min: Double = Cube.map(x => x.y).toList.min
-    val y_max: Double = Cube.map(x => x.y2).toList.max
-    val t_min: Double = Cube.map(x => x.t).toList.min
-    val t_max: Double = Cube.map(x => x.t2).toList.max
+  def getMinimalBounding(pointCube: Array[DBScanPoint_3D]): DBScanCube = {
+    val Cube: Array[DBScanPoint_3D] = pointCube
+    val x_min: Double = Cube.map(x => x.distanceX).toList.min
+    val x_max: Double = Cube.map(x => x.distanceX).toList.max
+    val y_min: Double = Cube.map(x => x.distanceY).toList.min
+    val y_max: Double = Cube.map(x => x.distanceY).toList.max
+    val t_min: Double = Cube.map(x => x.timeDimension).toList.min
+    val t_max: Double = Cube.map(x => x.timeDimension).toList.max
     DBScanCube(x_min, y_min, t_min, x_max, y_max, t_max)
   }
   def getSplits(): Set[(Int,DBScanCube, Int)] ={
@@ -55,7 +62,7 @@ case class Cell_3D(pointCube: Set[(DBScanCube, Int)], x_bounding: Double,y_bound
       t <- t_split.init
     } yield DBScanCube(x, y, t, x + x_bounding, y + y_bounding, t + t_bounding)
     val cubetemp = cubes.toSet
-
+    println("cube size before filter",cubetemp.size)
     //过滤掉点数为0的Cube
     val cubetemp1: Set[(DBScanCube, Int)] = cubetemp
       .map { cube =>
@@ -64,6 +71,8 @@ case class Cell_3D(pointCube: Set[(DBScanCube, Int)], x_bounding: Double,y_bound
       .filter { case (_, count) =>
         count != 0
       }
+    println("cube size after filter",cubetemp1.size)
+
     //给Cube标记索引
     var index = 0
     val pointofcube: Set[(Int,DBScanCube, Int)] = cubetemp1.map { case(cube,count) =>
@@ -74,7 +83,7 @@ case class Cell_3D(pointCube: Set[(DBScanCube, Int)], x_bounding: Double,y_bound
     val filePath = "D:/START/distribute-ST-cluster/code/Louvain/cube.txt"
     val writer = new PrintWriter(filePath)
     pointofcube.foreach { case (id,cube,count) =>
-      writer.println(s"$id\t$count") //"源节点 目标节点 权重"
+      writer.println(s"$id\t$count")
     }
     writer.close()
 

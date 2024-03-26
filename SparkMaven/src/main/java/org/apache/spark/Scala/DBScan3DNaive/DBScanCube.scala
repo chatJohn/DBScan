@@ -41,4 +41,26 @@ case class DBScanCube(x: Double, y: Double, t: Double, x2: Double, y2: Double, t
   def almostContains(point: DBScanPoint_3D): Boolean = {
     x < point.distanceX && point.distanceX < x2 && y < point.distanceY && point.distanceY < y2 && t < point.timeDimension && point.timeDimension < t2
   }
+
+  // Override hashCode and equals methods
+  override def hashCode(): Int = {
+    val prime = 31
+    var result = 1
+    result = prime * result + x.hashCode()
+    result = prime * result + y.hashCode()
+    result = prime * result + t.hashCode()
+    result = prime * result + x2.hashCode()
+    result = prime * result + y2.hashCode()
+    result = prime * result + t2.hashCode()
+    result
+  }
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case other: DBScanCube =>
+        x == other.x && y == other.y && t == other.t &&
+          x2 == other.x2 && y2 == other.y2 && t2 == other.t2
+      case _ => false
+    }
+  }
 }
