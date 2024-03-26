@@ -92,7 +92,6 @@ extends Serializable with  Logging{
       .aggregateByKey(0)(_ + _, _ + _) // 先同一个RDD中相同Rectangle数据点相加，然后所有RDD中相同的Rectangle的数据点相加
       .collect()
       .toSet // 构建全局数据点的立方体
-    println("Points",minimumCubeWithCount.map(_._2).sum)
 
     val localPartitions: List[(DBScanCube, Int)]
       = EvenSplitPartition_3D.partition(minimumCubeWithCount,
