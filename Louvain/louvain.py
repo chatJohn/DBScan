@@ -124,7 +124,7 @@ class Louvain():
         return self.get_communities()
 
 if __name__ == '__main__':
-    G = load_graph('edges.txt')
+    G = load_graph('edges_all_delete.txt')
     algorithm = Louvain(G)
     communities = algorithm.execute()
     # 按照社区大小从大到小排序输出
