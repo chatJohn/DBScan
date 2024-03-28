@@ -1,15 +1,9 @@
-import json
 import sys
 
-from graph import Graph
+from k_way_graph import Graph
 
-
-def createGraph():
-    with open('graph.json', 'r') as f:
-        graph_dic = json.load(f)
-
-    return Graph(graph_dic)
-
+def load_graph(path):
+    return Graph(path)
 
 def sumWeights(graph, internalSet, node):
     weights = 0
@@ -76,8 +70,6 @@ def switch(graph, A, B,k):
     X = []
     Y = []
 
-    number=min(len(A),len(B))
-
     for i in range(int(graph.getSize() / k)+1):
         # print("A",A,"B",B)
         x, y, cost = maxSwitchCostNodes(graph, A, B, D)
@@ -112,21 +104,27 @@ def switch(graph, A, B,k):
         B = [i for i in Y]
         return A, B, True
 
+def k_lin(k,path):
+    graph = load_graph(path)
 
-def k_lin(k):
-    graph = createGraph()
     partitions = {i: [] for i in range(k)}
     partition_index = 0
 
-    for i in range(graph.getSize()):
+    for i in range(1,graph.getSize()+1):
         partitions[partition_index].append(i)
         partition_index = (partition_index + 1) % k
 
-    print("Before KL")
+    print("\nBefore KL")
+    sum_all = 0
     for i in range(k):
-        print("Partition", i, ":")
+        print("\nPartition", i, ":")
+        sum = 0
         for node in partitions[i]:
-            print(graph.getNodeLabel(node))
+            print(node,end=' ')
+            sum += sumWeights(graph, partitions[i], node)
+        print("internal weight",sum)
+        sum_all += sum
+    print("external weight",graph.weightsum-sum_all)
 
     for i in partitions:
         for j in partitions:
@@ -136,14 +134,21 @@ def k_lin(k):
                     partitions[i],partitions[j],done = switch(graph,partitions[i],partitions[j],k)
 
     print("After KL")
+    sum_all = 0
     for i in range(k):
-        print("Partition", i, ":")
+        print("\nPartition", i, ":")
+        sum = 0
         for node in partitions[i]:
-            print(graph.getNodeLabel(node)," ")
+            print(node,end=' ')
+            sum += sumWeights(graph, partitions[i], node)
+        print("internal weight",sum)
+        sum_all += sum
+    print("external weight",graph.weightsum-sum_all)
 
 def main():
-    k = 3  # 设定分区数
-    k_lin(k)
+    k = 15  # 设定分区数
+    path= "edges_all.txt"
+    k_lin(k,path)
 
 if __name__ == '__main__':
     main()
