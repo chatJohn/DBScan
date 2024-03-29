@@ -109,10 +109,11 @@ def k_lin(k,path):
 
     partitions = {i: [] for i in range(k)}
     partition_index = 0
-
+    # print(graph.getSize())
+    # print(graph.nodes)
     for i in range(1,graph.getSize()+1):
-        partitions[partition_index].append(i)
-        partition_index = (partition_index + 1) % k
+        partitions[partition_index % k].append(i)
+        partition_index = partition_index + 1
 
     print("\nBefore KL")
     sum_all = 0
@@ -146,8 +147,8 @@ def k_lin(k,path):
     print("external weight",graph.weightsum-sum_all)
 
 def main():
-    k = 15  # 设定分区数
-    path= "edges_all.txt"
+    k = 12  # 设定分区数
+    path= "edges.txt"
     k_lin(k,path)
 
 if __name__ == '__main__':

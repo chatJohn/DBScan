@@ -128,8 +128,6 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
               case (inner, main, outer) => main.contains(point) && !inner.almostContains(point)
             }
             (filteredCubeSet, id)
-        }.filter {
-          case (filteredCubeSet, _) => filteredCubeSet.nonEmpty
         }.map({
           case (_, newPartition) => (newPartition, (partition, point))
         })
@@ -186,7 +184,6 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
           (partition, point)
         }
       })
-
 
     println("About to relabel outer points")
     val labeledOuter =

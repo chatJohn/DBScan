@@ -11,8 +11,8 @@ class Graph:
                 v_i = int(vertices[0])
                 v_j = int(vertices[1])
                 w = float(vertices[2])
-                self.nodes.add(v_i)
-                self.nodes.add(v_j)
+                if(v_i>0): self.nodes.add(v_i)
+                if(v_j>0): self.nodes.add(v_j)
                 self.matrix[v_i][v_j] = w
                 self.matrix[v_j][v_i] = w
                 self.weightsum += 2*w

@@ -47,11 +47,12 @@ case class CellGraph_3D(pointofCube:Set[(Int, DBScanCube, Int)],x_bounding: Doub
     // 添加那些没有任何邻居的 Cube 到 -1 节点的边
     for ((id,_,_) <- pointofCube if !neighborsMap.contains(id)) {
       vertices += id
+      edges += (id, -1) -> 0
     }
     //不可变映射
     val immutableEdges = edges.toMap
 
-    val filePath = "D:/START/distribute-ST-cluster/code/Louvain/edges.txt"
+    val filePath = "D:/START/distribute-ST-cluster/code/edges.txt"
     val writer = new PrintWriter(filePath)
     edges.foreach { case ((id1, id2), weight) =>
       writer.println(s"$id1\t$id2\t$weight") //"源节点 目标节点 权重"

@@ -4,6 +4,7 @@ import org.apache.spark.Scala.DBScan3DNaive.{DBScanCube, DBScanPoint_3D}
 import org.apache.spark.Scala.utils.partition.Cell_3D.getCube
 import org.apache.spark.Scala.utils.partition.CellGraph_3D.getcellGraph
 
+import scala.collection.mutable
 import scala.util.control.Breaks
 
 object CubeSplitPartition_3D{
@@ -27,7 +28,8 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
     println("cube graph vertices",cellgraph.vertices.size,"edges",cellgraph.edges.size)
 
     println("About to start partitioning...")
-    val partitions = partition(cellgraph, pointofCube)
+//    val partitions = partition(cellgraph, pointofCube)
+    val partitions = partition1(pointofCube)
     println("the Partitions are below:")
 //    partitions.foreach(println)
     println("partitions size",partitions.size)
@@ -38,6 +40,36 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
 //    print("cube in partitions",sum2)
     println("Partitioning Done")
     partitions
+  }
+  def partition1(pointofCube: Set[(Int, DBScanCube, Int)]):List[Set[DBScanCube]] = {
+    var cubepartition: List[Set[DBScanCube]] = List()
+    val totallist: List[List[Int]] = List(
+      List(103, 87, 41, 118, 61, 35, 142, 138, 108, 15, 133, 131, 90),
+      List(139, 78, 121, 86, 18, 93, 113, 120, 110, 24, 53, 42, 79),
+      List(12, 58, 143, 135, 84, 106, 123, 145, 115, 49, 137, 69),
+      List(144, 81, 60, 132, 96, 129, 38, 59, 114, 72, 102, 1),
+      List(119, 10, 9, 16, 105, 50, 46, 104, 74, 57, 62, 2),
+      List(13, 88, 80, 21, 6, 112, 134, 3, 23, 130, 128, 97),
+      List(91, 95, 32, 73, 52, 44, 8, 127, 64, 17, 29, 70),
+      List(27, 99, 92, 30, 43, 67, 109, 82, 140, 7, 11, 26),
+      List(36, 20, 75, 136, 77, 63, 98, 85, 89, 116, 146, 54),
+      List(101, 56, 5, 51, 40, 34, 66, 22, 141, 28, 117, 14),
+      List(25, 125, 47, 124, 122, 4, 126, 111, 31, 39, 68, 45),
+      List(33, 71, 94, 19, 83, 48, 107, 100, 65, 55, 37, 76)
+    )
+    var cubelist:Set[DBScanCube]=Set()
+    for(list<-totallist){
+      for(v<-list){
+        pointofCube.find { case (idx, cube, count) => idx == v } match {
+          case Some((_, cube, count)) =>
+            cubelist += cube
+        }
+      }
+      cubepartition = cubelist :: cubepartition
+//      println(cubelist)
+      cubelist = Set()
+    }
+    cubepartition
   }
 
   def partition(cellgraph: Graph, pointofCube: Set[(Int, DBScanCube, Int)]):List[Set[DBScanCube]] = {
