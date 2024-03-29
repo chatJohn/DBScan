@@ -3,7 +3,7 @@ package org.apache.spark.Scala.utils.partition
 import org.apache.spark.Scala.DBScan3DNaive.{DBScanCube, DBScanPoint_3D}
 import org.apache.spark.Scala.utils.partition.Cell_3D.getCube
 import org.apache.spark.Scala.utils.partition.CellGraph_3D.getcellGraph
-
+import org.apache.spark.Scala.utils.partition.Kernighan_Lin.getPartition
 import scala.collection.mutable
 import scala.util.control.Breaks
 
@@ -27,9 +27,12 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
     val cellgraph: Graph = getcellGraph(pointofCube,x_bounding,y_bounding,t_bounding)
     println("cube graph vertices",cellgraph.vertices.size,"edges",cellgraph.edges.size)
 
+
     println("About to start partitioning...")
 //    val partitions = partition(cellgraph, pointofCube)
-    val partitions = partition1(pointofCube)
+//    val partitions = partition1(pointofCube)
+    val partitions = getPartition(pointofCube,cellgraph,maxPointsPerPartition)
+
     println("the Partitions are below:")
 //    partitions.foreach(println)
     println("partitions size",partitions.size)
@@ -41,6 +44,8 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
     println("Partitioning Done")
     partitions
   }
+
+  // a test try
   def partition1(pointofCube: Set[(Int, DBScanCube, Int)]):List[Set[DBScanCube]] = {
     var cubepartition: List[Set[DBScanCube]] = List()
     val totallist: List[List[Int]] = List(
@@ -72,6 +77,7 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
     cubepartition
   }
 
+  // node bianli
   def partition(cellgraph: Graph, pointofCube: Set[(Int, DBScanCube, Int)]):List[Set[DBScanCube]] = {
     var cubepartition: List[Set[DBScanCube]] = List() //每个分区由若干个Cube组成
     var visited: Set[Int] = Set()

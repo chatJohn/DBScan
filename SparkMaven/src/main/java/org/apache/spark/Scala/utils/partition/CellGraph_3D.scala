@@ -23,6 +23,7 @@ case class CellGraph_3D(pointofCube:Set[(Int, DBScanCube, Int)],x_bounding: Doub
     dx <= x_bounding && dy <= y_bounding && dt <= t_bounding
   }
 
+
   def getGraph(): Graph={
     var vertices: mutable.SortedSet[Int] = mutable.SortedSet()
     var edges: mutable.Map[(Int, Int), Double] = mutable.Map()
@@ -38,7 +39,7 @@ case class CellGraph_3D(pointofCube:Set[(Int, DBScanCube, Int)],x_bounding: Doub
           vertices += id2
 
           edges += (id1, id2) -> weight
-
+          edges += (id2, id1) -> weight
           neighborsMap += id1 -> (neighborsMap.getOrElse(id1, Set()) + id2)
           neighborsMap += id2 -> (neighborsMap.getOrElse(id2, Set()) + id1) //id2的邻居Set中添加id1
         }
