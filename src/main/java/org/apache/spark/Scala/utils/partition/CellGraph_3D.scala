@@ -4,7 +4,7 @@ import org.apache.spark.Scala.DBScan3DNaive.DBScanCube
 import scala.collection.mutable
 import scala.math.sqrt
 
-case class Graph(vertices: mutable.SortedSet[Int], edges: Map[(Int, Int), Double])
+
 
 object CellGraph_3D{
 

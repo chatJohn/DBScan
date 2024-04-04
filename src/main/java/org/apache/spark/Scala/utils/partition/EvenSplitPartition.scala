@@ -18,7 +18,6 @@ object EvenSplitPartition {
 }
 
 /**
- *
  * @param maxPointsPerPartition 每个分区中的最多的点数
  * @param minimumRectangleSize 最小的矩形大小
  */

@@ -1,6 +1,6 @@
 package org.apache.spark.Scala.utils.partition
 
-import org.apache.spark.Scala.DBScan3DNaive.DBScanCube
+import org.apache.spark.Scala.DBScan3DNaive.{DBScanCube, DBScanPoint_3D}
 
 
 object Cell_3D{
@@ -11,37 +11,37 @@ object Cell_3D{
    * @param t_bounding
    * @return the Set of Cubes
    */
-  def getCube(pointCube:Set[(DBScanCube, Int)], x_bounding: Double, y_bounding: Double, t_bounding: Double): Set[(Int, DBScanCube, Int)] = {
-    new Cell_3D(pointCube, x_bounding, y_bounding, t_bounding).getSplits()
+  def getCube(points:Array[DBScanPoint_3D], x_bounding: Double, y_bounding: Double, t_bounding: Double): Set[(Int, DBScanCube, Int)] = {
+    new Cell_3D(points, x_bounding, y_bounding, t_bounding).getSplits()
   }
 }
 
 
-case class Cell_3D(pointCube: Set[(DBScanCube, Int)], x_bounding: Double, y_bounding: Double, t_bounding: Double) {
+case class Cell_3D(points:Array[DBScanPoint_3D], x_bounding: Double, y_bounding: Double, t_bounding: Double) {
   type CubeWithCount = (DBScanCube, Int)
-  def pointsInCube(space: Set[CubeWithCount], cube: DBScanCube): Int = {
-    val count = space.view
-      .filter({
-        case (current, _) => cube.contains(current)
-      })
-      .foldLeft(0)({
-        case (total, (_, currentCubeCount)) => total + currentCubeCount
-      })
-    count
-  }
-  def pointsIn: DBScanCube => Int = pointsInCube(pointCube, _: DBScanCube)
 
-  def getMinimalBounding(pointCube: Set[(DBScanCube)]): DBScanCube = {
-    val x_min: Double = pointCube.map(x => x.x).toList.min
-    val x_max: Double = pointCube.map(x => x.x2).toList.max
-    val y_min: Double = pointCube.map(x => x.y).toList.min
-    val y_max: Double = pointCube.map(x => x.y2).toList.max
-    val t_min: Double = pointCube.map(x => x.t).toList.min
-    val t_max: Double = pointCube.map(x => x.t2).toList.max
+  def pointsIn(cube: DBScanCube): Int = {
+    var count = 0
+    for (point <- points){
+      if(cube.contains(point)){
+        count = count + 1
+      }
+    }
+    count
+
+  }
+
+  def getMinimalBounding(points: Array[DBScanPoint_3D]): DBScanCube = {
+    val x_min: Double = points.map(x => x.distanceX).toList.min
+    val x_max: Double = points.map(x => x.distanceX).toList.max
+    val y_min: Double = points.map(x => x.distanceY).toList.min
+    val y_max: Double = points.map(x => x.distanceY).toList.max
+    val t_min: Double = points.map(x => x.timeDimension).toList.min
+    val t_max: Double = points.map(x => x.timeDimension).toList.max
     DBScanCube(x_min, y_min, t_min, x_max, y_max, t_max)
   }
   def getSplits(): Set[(Int, DBScanCube, Int)] ={
-    val boundingCube: DBScanCube = getMinimalBounding(pointCube.map(_._1))
+    val boundingCube: DBScanCube = getMinimalBounding(points)
     doSplitWithBounding(boundingCube, x_bounding, y_bounding, t_bounding)
   }
   def doSplitWithBounding(originCube: DBScanCube, x_bounding: Double, y_bounding: Double, t_bounding: Double): Set[(Int, DBScanCube, Int)] = {

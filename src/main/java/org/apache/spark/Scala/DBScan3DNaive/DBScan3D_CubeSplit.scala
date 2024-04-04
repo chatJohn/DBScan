@@ -1,32 +1,38 @@
 package org.apache.spark.Scala.DBScan3DNaive
 
 import org.apache.spark.Scala.DBScan3DNaive.DBScanLabeledPoint_3D.Flag
-import org.apache.spark.Scala.utils.partition.EvenSplitPartition_3D
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
-import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.Vector
+import org.apache.spark.rdd.RDD
+import org.apache.spark.Scala.utils.partition.CubeSplitPartition_3D
+import org.apache.spark.Scala.utils.sample.Sample
 
-
-object DBScan3D{
+object DBScan3D_CubeSplit{
   def train(data: RDD[Vector],
             distanceEps: Double,
             timeEps: Double,
             minPoints: Int,
-            maxPointsPerPartitions: Int
-           ): DBScan3D = {
-    new DBScan3D(distanceEps, timeEps, minPoints, maxPointsPerPartitions, null, null).train(data)
+            maxPointsPerPartitions: Int,
+            x_bounding: Double,
+            y_bounding: Double,
+            t_bounding: Double
+           ): DBScan3D_CubeSplit = {
+    new DBScan3D_CubeSplit(distanceEps, timeEps, minPoints, maxPointsPerPartitions,x_bounding,y_bounding,t_bounding,null, null).train(data)
   }
 }
 
-class DBScan3D private(val distanceEps: Double,
-                       val timeEps: Double,
-                       val minPoints: Int,
-                       val maxPointsPerPartition: Int,
-                       @transient val partitions: List[(Int, DBScanCube)],
-                       @transient private val labeledPartitionedPoints: RDD[(Int, DBScanLabeledPoint_3D)])
-extends Serializable with  Logging{
-  type Margin = (DBScanCube, DBScanCube, DBScanCube)
+class DBScan3D_CubeSplit private(val distanceEps: Double,
+                                 val timeEps: Double,
+                                 val minPoints: Int,
+                                 val maxPointsPerPartition: Int,
+                                 val x_bounding: Double,
+                                 val y_bounding: Double,
+                                 val t_bounding: Double,
+                                 @transient val partitions: List[(Int, DBScanCube)],
+                                 @transient private val labeledPartitionedPoints: RDD[(Int, DBScanLabeledPoint_3D)])
+  extends Serializable with  Logging{
+  type Margin = Set[(DBScanCube, DBScanCube, DBScanCube)]
   type ClusterID = (Int, Int)
   def minimumRectangleSize: Double = 2 * distanceEps
   def minimumHigh: Double = 2 * timeEps
@@ -53,16 +59,18 @@ extends Serializable with  Logging{
     })
     adjacencies
   }
+
   def isInnerPoint(entry: (Int, DBScanLabeledPoint_3D), margins: List[(Margin, Int)]): Boolean = {
     entry match {
-      case (partition, point) => {
-        val ((inner, main, outer), _) = margins.filter({
-          case (_, id) => id == partition
-        }).head
-        inner.almostContains(point)
-      }
+      case (partition, point) =>
+        margins.exists {
+          case (cubeSet, id) => id == partition && cubeSet.exists {
+            case (inner, _, _) => inner.almostContains(point)
+          }
+        }
     }
   }
+
   def shiftIfNegative(p: Double, minimum: Double): Double= {
     if(p < 0) {
       p - minimum
@@ -73,6 +81,7 @@ extends Serializable with  Logging{
   def corner(p: Double, minimum: Double): Double = {
     (shiftIfNegative(p, minimum) / minimum).intValue * minimum
   }
+
   private def toMinimumBoundingCube(vector: Vector): DBScanCube = {
     val point: DBScanPoint_3D = DBScanPoint_3D(vector) // object DBScanPoint
     val x = corner(point.distanceX, minimumRectangleSize)
@@ -81,35 +90,55 @@ extends Serializable with  Logging{
     DBScanCube(x, y, time, x + minimumRectangleSize, y + minimumRectangleSize, time + minimumHigh)
 
   }
-  private def train(data: RDD[Vector]): DBScan3D = {
-    println("About to train")
-    val minimumCubeWithCount: Set[(DBScanCube, Int)] = data
+
+  private def train(data: RDD[Vector]): DBScan3D_CubeSplit = {
+
+//    val minimumCubeWithCount: Set[(DBScanCube, Int)] = data
+//      .map(x => {
+//        toMinimumBoundingCube(x) // give every point the minimum bounding rectangle
+//      })
+//      .map(x => (x, 1))
+//      .aggregateByKey(0)(_ + _, _ + _) // 先同一个RDD中相同Rectangle数据点相加，然后所有RDD中相同的Rectangle的数据点相加
+//      .collect()
+//      .toSet // 构建全局数据点的立方体
+//    println("global Cube1: ", minimumCubeWithCount)
+    val points: Array[DBScanPoint_3D] = data
       .map(x => {
-        toMinimumBoundingCube(x) // give every point the minimum bounding rectangle
+        DBScanPoint_3D(x) // give every point the minimum bounding rectangle
       })
-      .map(x => (x, 1))
-      .aggregateByKey(0)(_ + _, _ + _) // 先同一个RDD中相同Rectangle数据点相加，然后所有RDD中相同的Rectangle的数据点相加
       .collect()
-      .toSet // 构建全局数据点的立方体
+    println("points.size",points.size)
+    val samplePoints: RDD[DBScanPoint_3D] = Sample.sample(data, sampleRate = 0.1)
+    println("Sample Done: Sample count: ", samplePoints.collect().toList.size)
+    // New method
+    val localPartitions: List[Set[DBScanCube]]
+    = CubeSplitPartition_3D.getPartition(points,
+      x_bounding,
+      y_bounding,
+      t_bounding,
+      maxPointsPerPartition
+    )
 
-    val localPartitions: List[(DBScanCube, Int)]
-      = EvenSplitPartition_3D.partition(minimumCubeWithCount,
-        maxPointsPerPartition,
-        minimumRectangleSize,
-        minimumHigh)
-    println(s"local partition size: ${localPartitions.size}")
+    var localCubeTemp: List[Set[(DBScanCube, DBScanCube, DBScanCube)]] = List()
+    for(cubeSet <- localPartitions){
+      var cubeShrink : Set[(DBScanCube, DBScanCube, DBScanCube)]= Set()
+      for(p <- cubeSet){
+        cubeShrink += ((p.shrink(distanceEps,timeEps), p, p.shrink(-distanceEps,-timeEps)))
+      }
+      localCubeTemp = cubeShrink :: localCubeTemp
+    }
+    val localCube: List[(Set[(DBScanCube, DBScanCube, DBScanCube)], Int)] = localCubeTemp.zipWithIndex
+    val margins: Broadcast[List[(Set[(DBScanCube, DBScanCube, DBScanCube)], Int)]] = data.context.broadcast(localCube)
 
-    val localCube: List[((DBScanCube, DBScanCube, DBScanCube), Int)] = localPartitions.map({
-      case (p, _) => (p.shrink(distanceEps,timeEps), p, p.shrink(-distanceEps,-timeEps))
-    }).zipWithIndex
-    val margins: Broadcast[List[((DBScanCube, DBScanCube, DBScanCube), Int)]] = data.context.broadcast(localCube)
-
-    // BaseLine method
     val duplicated: RDD[(Int, DBScanPoint_3D)] = for {
       point <- data.map(new DBScanPoint_3D(_))
-      ((inner, main, outer), id) <- margins.value
+      (cubeset, id)<- margins.value
+      (inner, main, outer) <- cubeset
       if outer.contains(point)
     } yield (id, point) // the point in the partition with id
+
+    val duplicatedCount: Long = duplicated.count()
+    println("Total count of duplicated elements: " + duplicatedCount)
 
     val numberOfPartitions: Int = localPartitions.size
     println("perform local DBScan")
@@ -121,18 +150,20 @@ extends Serializable with  Logging{
       }) // different partition has different clustering
 
     println("find all candidate points for merging clusters and group them => inner margin & outer margin")
+
     val marginPoints: RDD[(Int, Iterable[(Int, DBScanLabeledPoint_3D)])] = clustered.flatMap({
       case (partition, point) => {
-        margins.value
-          .filter({
-            case ((inner, main, outer), _) => main.contains(point) && !inner.almostContains(point)
-            /*
-            * not in inner rectangle not including the border of the inner rectangle
-            * */
-          })
-          .map({
-            case (_, newPartition) => (newPartition, (partition, point))
-          })
+        margins.value.map {
+          case (cubeSet, id) =>
+            val filteredCubeSet = cubeSet.filter {
+              case (inner, main, outer) => main.contains(point) && !inner.almostContains(point)
+            }
+            (filteredCubeSet, id)
+        }.filter {
+          case (filteredCubeSet, _) => filteredCubeSet.nonEmpty
+        }.map({
+          case (_, newPartition) => (newPartition, (partition, point))
+        })
       }
     }).groupByKey()
     println("find all candidate points Done!")
@@ -212,17 +243,16 @@ extends Serializable with  Logging{
         }).values
       })
 
-    val finalPartitions = localCube.map {
-      case ((_, p, _), index) => (index, p)
-    }
-
     println("Done")
-    new DBScan3D(
+    new DBScan3D_CubeSplit(
       distanceEps,
       timeEps,
       minPoints,
       maxPointsPerPartition,
-      finalPartitions,
+      x_bounding,
+      y_bounding,
+      t_bounding,
+      null,
       labeledInner.union(labeledOuter))
   }
 }

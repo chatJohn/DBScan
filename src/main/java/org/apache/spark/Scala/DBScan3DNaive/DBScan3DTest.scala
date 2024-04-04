@@ -35,7 +35,13 @@ object DBScan3DTest {
     val timeEps: Double = args(3).toDouble
     val minPoints: Int = args(4).toInt
     val maxPointsPerPartition: Int = args(5).toInt
-    val DBScanRes: DBScan3D = DBScan3D.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition)
+    // new partition method params
+    val x_boundind: Double = 1.0
+    val y_bounding: Double = 1.0
+    val t_bounding: Double = 1.0
+
+//    val DBScanRes: DBScan3D = DBScan3D.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition)
+    val DBScanRes: DBScan3D_CubeSplit = DBScan3D_CubeSplit.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition, x_boundind, y_bounding, t_bounding)
     DBScanRes.labeledPoints.coalesce(1).sortBy(x => x.cluster).saveAsTextFile(args(1))
     sparkContext.stop()
   }
