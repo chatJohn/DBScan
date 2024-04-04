@@ -6,6 +6,9 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.Scala.utils.partition.CubeSplitPartition_3D
+import scala.collection.mutable
+import org.apache.spark.{SparkConf, SparkContext}
+
 
 object DBScan3D_cubesplit{
   def train(data: RDD[Vector],
@@ -99,12 +102,26 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
     val localCube: List[(Set[(DBScanCube, DBScanCube, DBScanCube)], Int)] = localCubetemp.zipWithIndex
     val margins: Broadcast[List[(Set[(DBScanCube, DBScanCube, DBScanCube)], Int)]] = data.context.broadcast(localCube)
 
-    val duplicated: RDD[(Int, DBScanPoint_3D)] = for {
-      point <- data.map(new DBScanPoint_3D(_))
-      (cubeset, id)<- margins.value
-      (inner, main, outer) <- cubeset
-      if outer.contains(point)
-    } yield (id, point) // the point in the partition with id
+//    val duplicated: RDD[(Int, DBScanPoint_3D)] = for {
+//      point <- data.map(new DBScanPoint_3D(_))
+//      (cubeset, id)<- margins.value
+//      (inner, main, outer) <- cubeset
+//      if outer.contains(point)
+//    } yield (id, point) // the point in the partition with id
+
+    val duplicated: RDD[(Int, DBScanPoint_3D)] = data.flatMap { point =>
+      val foundPoints = margins.value.flatMap { case (cubeset, id) =>
+        cubeset.flatMap { case (inner, main, outer) =>
+          if (outer.contains(DBScanPoint_3D(point))) Some((id, DBScanPoint_3D(point)))
+          else None
+        }
+      }
+      if (foundPoints.isEmpty) {
+        margins.value.map { case (_, id) => (id, DBScanPoint_3D(point)) }
+      } else {
+        foundPoints
+      }
+    }
 
     val duplicatedCount: Long = duplicated.count()
     println("Total count of duplicated elements: " + duplicatedCount)
