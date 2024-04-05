@@ -204,8 +204,8 @@ case class Kernighan_Lin(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Grap
       partitionIndex += 1
     }
 
-    println("\nBefore KL")
-    print_partion_weight(partitions)
+//    println("\nBefore KL")
+//    print_partion_weight(partitions)
     // 成对执行KL算法
     for (i <- partitions.keys; j <- partitions.keys if i < j) {
       var done = false
@@ -233,19 +233,19 @@ case class Kernighan_Lin(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Grap
       if(sum1<summin1) summin1 = sum1
       sum1 = 0
     }
-    println("points in partion max-min: ",summax1-summin1)
+//    println("points in partion max-min: ",summax1-summin1)
 
     // 加上分区点数限制，对点数大于上限的分区进行拆分，以及对点数小于下限的分区进行合并
-    val partitions_points = mutable.Map[Int, (mutable.Set[Int],Int)]()
-    for ((index , nodes) <- partitions){
-      partitions_points(index) = (nodes, points_in_partition(nodes))
-    }
-    val maxPointsPerPartition = (PointsPerPartition * 1.2).toInt
-    val minPointsPerPartition = (PointsPerPartition * 0.8).toInt
-    println("maxPointsPerPartition",maxPointsPerPartition,"minPointsPerPartition",minPointsPerPartition)
-    val new_partition = split_merge(partitions_points,maxPointsPerPartition,minPointsPerPartition)
-    print("\nAfter split_merge")
-    print_partion_weight(new_partition)
+//    val partitions_points = mutable.Map[Int, (mutable.Set[Int],Int)]()
+//    for ((index , nodes) <- partitions){
+//      partitions_points(index) = (nodes, points_in_partition(nodes))
+//    }
+//    val maxPointsPerPartition = (PointsPerPartition * 1.2).toInt
+//    val minPointsPerPartition = (PointsPerPartition * 0.8).toInt
+//    println("maxPointsPerPartition",maxPointsPerPartition,"minPointsPerPartition",minPointsPerPartition)
+//    val new_partition = split_merge(partitions_points,maxPointsPerPartition,minPointsPerPartition)
+//    print("\nAfter split_merge")
+//    print_partion_weight(new_partition)
 
     // 返回最终分区结果
     var cubepartition: List[Set[DBScanCube]] = List()
@@ -253,8 +253,8 @@ case class Kernighan_Lin(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Grap
     var sum = 0
     var summax:Int = 0
     var summin:Int = 0
-    for (i <- 0 until new_partition.size) {
-      for (node <- new_partition(i)) {
+    for (i <- 0 until partitions.size) {  //new_partition
+      for (node <- partitions(i)) {  //new_partition
         pointofCube.find { case (idx, cube, count) => idx == node } match {
           case Some((_, cube, count)) =>
             sum += count

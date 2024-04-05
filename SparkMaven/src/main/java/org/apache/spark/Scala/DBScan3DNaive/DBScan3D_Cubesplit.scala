@@ -6,8 +6,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.Scala.utils.partition.CubeSplitPartition_3D
-import scala.collection.mutable
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.Scala.utils.sample.Sample
 
 
 object DBScan3D_cubesplit{
@@ -82,9 +81,12 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
       .collect()
     println("points.size",points.size)
 
+    val samplePoints: RDD[DBScanPoint_3D] = Sample.sample(data, sampleRate = 0.1)
+    println("Sample Done: Sample count: ", samplePoints.collect().toList.size)
+
       // New method
     val localPartitions: List[Set[DBScanCube]]
-    = CubeSplitPartition_3D.getPartition(points,
+    = CubeSplitPartition_3D.getPartition(samplePoints.collect(),//points,
       x_bounding,
       y_bounding,
       t_bounding,

@@ -62,7 +62,7 @@ case class Cell_3D(pointCube: Array[DBScanPoint_3D], x_bounding: Double,y_boundi
       t <- t_split.init
     } yield DBScanCube(x, y, t, x + x_bounding, y + y_bounding, t + t_bounding)
     val cubetemp = cubes.toSet
-    println("cube size before filter",cubetemp.size)
+
     //过滤掉点数为0的Cube
     val cubetemp1: Set[(DBScanCube, Int)] = cubetemp
       .map { cube =>
@@ -71,7 +71,6 @@ case class Cell_3D(pointCube: Array[DBScanPoint_3D], x_bounding: Double,y_boundi
       .filter { case (_, count) =>
         count != 0
       }
-    println("cube size after filter",cubetemp1.size)
 
     //给Cube标记索引
     var index = 0

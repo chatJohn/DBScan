@@ -53,12 +53,12 @@ case class CellGraph_3D(pointofCube:Set[(Int, DBScanCube, Int)],x_bounding: Doub
     //不可变映射
     val immutableEdges = edges.toMap
 
-    val filePath = "D:/START/distribute-ST-cluster/code/edges.txt"
-    val writer = new PrintWriter(filePath)
-    edges.foreach { case ((id1, id2), weight) =>
-      writer.println(s"$id1\t$id2\t$weight") //"源节点 目标节点 权重"
-    }
-    writer.close()
+//    val filePath = "D:/START/distribute-ST-cluster/code/edges.txt"
+//    val writer = new PrintWriter(filePath)
+//    edges.foreach { case ((id1, id2), weight) =>
+//      writer.println(s"$id1\t$id2\t$weight") //"源节点 目标节点 权重"
+//    }
+//    writer.close()
 
     Graph(vertices, immutableEdges)
   }

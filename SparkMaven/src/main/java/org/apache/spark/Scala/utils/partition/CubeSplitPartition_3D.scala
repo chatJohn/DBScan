@@ -20,7 +20,7 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
     val pointofCube: Set[(Int, DBScanCube, Int)] = getCube(points,x_bounding,y_bounding,t_bounding)
 
     val cellgraph: Graph = getcellGraph(pointofCube,x_bounding,y_bounding,t_bounding)
-    println("cube graph vertices",cellgraph.vertices.size,"edges",cellgraph.edges.size)
+//    println("cube graph vertices",cellgraph.vertices.size,"edges",cellgraph.edges.size)
 
     println("About to start partitioning...")
 //    val partitions = partition(cellgraph, pointofCube)
