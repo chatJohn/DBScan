@@ -71,45 +71,15 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
     }
   }
 
-  def shiftIfNegative(p: Double, minimum: Double): Double= {
-    if(p < 0) {
-      p - minimum
-    } else {
-      p
-    }
-  }
-  def corner(p: Double, minimum: Double): Double = {
-    (shiftIfNegative(p, minimum) / minimum).intValue * minimum
-  }
-
-  private def toMinimumBoundingCube(vector: Vector): DBScanCube = {
-    val point: DBScanPoint_3D = DBScanPoint_3D(vector) // object DBScanPoint
-    val x = corner(point.distanceX, minimumRectangleSize)
-    val y = corner(point.distanceY, minimumRectangleSize)
-    val time = corner(point.timeDimension, minimumHigh)
-    DBScanCube(x, y, time, x + minimumRectangleSize, y + minimumRectangleSize, time + minimumHigh)
-
-  }
-
   private def train(data: RDD[Vector]): DBScan3D_CubeSplit = {
 
-//    val minimumCubeWithCount: Set[(DBScanCube, Int)] = data
-//      .map(x => {
-//        toMinimumBoundingCube(x) // give every point the minimum bounding rectangle
-//      })
-//      .map(x => (x, 1))
-//      .aggregateByKey(0)(_ + _, _ + _) // 先同一个RDD中相同Rectangle数据点相加，然后所有RDD中相同的Rectangle的数据点相加
-//      .collect()
-//      .toSet // 构建全局数据点的立方体
-//    println("global Cube1: ", minimumCubeWithCount)
     val points: Array[DBScanPoint_3D] = data
       .map(x => {
         DBScanPoint_3D(x) // give every point the minimum bounding rectangle
       })
       .collect()
-    println("points.size",points.size)
     val samplePoints: RDD[DBScanPoint_3D] = Sample.sample(data, sampleRate = 0.1)
-    println("Sample Done: Sample count: ", samplePoints.collect().toList.size)
+
     // New method
     val localPartitions: List[Set[DBScanCube]]
     = CubeSplitPartition_3D.getPartition(points,
