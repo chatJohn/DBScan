@@ -82,7 +82,7 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
 
     // New method
     val localPartitions: List[Set[DBScanCube]]
-    = CubeSplitPartition_3D.getPartition(points,
+    = CubeSplitPartition_3D.getPartition(samplePoints.collect(),
       x_bounding,
       y_bounding,
       t_bounding,

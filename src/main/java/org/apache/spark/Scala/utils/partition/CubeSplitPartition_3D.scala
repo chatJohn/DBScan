@@ -6,6 +6,7 @@ import org.apache.spark.Scala.utils.partition.CellGraph_3D.getCellGraph
 
 import scala.util.control.Breaks._
 import scala.collection.{breakOut, mutable}
+import scala.util.control.Breaks
 
 object CubeSplitPartition_3D{
   def getPartition(points:Array[DBScanPoint_3D], x_bounding: Double, y_bounding: Double, t_bounding: Double, maxPointsPerPartition:Int): List[Set[DBScanCube]] = {
@@ -47,16 +48,21 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
         // 权重从小到大排序
         val sortedEdges = connectedEdges.sortBy { case (_, weight) => weight }
 
-        for(((_, v2), _) <- sortedEdges){
-          if(sum<maxPointsPerPartition){
-            pointofCube.find { case (idx, cube, count) => idx == v2 } match {
-              case Some((_, cube, count)) =>
-                sum += count
-                cubelist += cube
+        val loop = new Breaks
+        loop.breakable {
+          for (((_, v2), _) <- sortedEdges) {
+            if (sum < maxPointsPerPartition) {
+              pointofCube.find { case (idx, cube, count) => idx == v2 } match {
+                case Some((_, cube, count)) =>
+                  sum += count
+                  cubelist += cube
+              }
+              visited += v2
             }
+            else loop.break()
           }
-          else break
         }
+        println("cubes",cubelist.size,"points",sum)
         cubepartition = cubelist :: cubepartition
       }
     }
