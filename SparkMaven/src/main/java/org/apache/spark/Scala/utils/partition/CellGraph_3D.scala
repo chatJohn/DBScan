@@ -1,6 +1,6 @@
 package org.apache.spark.Scala.utils.partition
 
-import org.apache.spark.Scala.DBScan3DNaive.DBScanCube
+import org.apache.spark.Scala.DBScan3DDistributed.DBScanCube
 import scala.collection.mutable
 import scala.math.sqrt
 import java.io.PrintWriter

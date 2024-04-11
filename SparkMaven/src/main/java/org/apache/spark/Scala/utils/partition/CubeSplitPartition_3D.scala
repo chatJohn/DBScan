@@ -1,6 +1,6 @@
 package org.apache.spark.Scala.utils.partition
 
-import org.apache.spark.Scala.DBScan3DNaive.{DBScanCube, DBScanPoint_3D}
+import org.apache.spark.Scala.DBScan3DDistributed.{DBScanCube, DBScanPoint_3D}
 import org.apache.spark.Scala.utils.partition.Cell_3D.getCube
 import org.apache.spark.Scala.utils.partition.CellGraph_3D.getcellGraph
 import org.apache.spark.Scala.utils.partition.Kernighan_Lin.getPartition

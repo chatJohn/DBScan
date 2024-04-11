@@ -2,7 +2,7 @@ package org.apache.spark.Scala.utils.partition
 
 import java.io.PrintWriter
 
-import org.apache.spark.Scala.DBScan3DNaive.{DBScanCube, DBScanPoint_3D}
+import org.apache.spark.Scala.DBScan3DDistributed.{DBScanCube, DBScanPoint_3D}
 
 
 object Cell_3D{
@@ -78,13 +78,6 @@ case class Cell_3D(pointCube: Array[DBScanPoint_3D], x_bounding: Double,y_boundi
       index=index+1
       (index ,cube, count)
     }
-
-    val filePath = "D:/START/distribute-ST-cluster/code/Louvain/cube.txt"
-    val writer = new PrintWriter(filePath)
-    pointofcube.foreach { case (id,cube,count) =>
-      writer.println(s"$id\t$count")
-    }
-    writer.close()
 
     pointofcube
   }

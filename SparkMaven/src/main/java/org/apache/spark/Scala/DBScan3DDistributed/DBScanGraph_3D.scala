@@ -1,4 +1,4 @@
-package org.apache.spark.Scala.DBScan3DNaive
+package org.apache.spark.Scala.DBScan3DDistributed
 import scala.annotation.tailrec
 
 object DBScanGraph_3D{

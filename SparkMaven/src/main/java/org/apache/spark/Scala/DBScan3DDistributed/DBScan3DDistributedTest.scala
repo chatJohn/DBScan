@@ -1,4 +1,4 @@
-package org.apache.spark.Scala.DBScan3DNaive
+package org.apache.spark.Scala.DBScan3DDistributed
 
 import org.apache.spark.mllib.linalg.{Vector, Vectors}
 import org.apache.spark.rdd.RDD
@@ -6,9 +6,9 @@ import org.apache.spark.serializer.KryoSerializer
 import org.apache.spark.{SparkConf, SparkContext}
 import java.text.SimpleDateFormat
 import java.util.Date
-import org.apache.spark.Scala.DBScan3DNaive.DBScan3D_cubesplit
+import org.apache.spark.Scala.DBScan3DDistributed.DBScan3D_cubesplit
 
-object DBScan3DTest {
+object DBScan3DDistributedTest {
 //spark submit --数据集路径 --result路径 --distanceEps --timeEps --minPoints --maxPointsPerPartition
   def main(args: Array[String]): Unit = {
     val directoryPath = "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id"

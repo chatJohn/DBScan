@@ -1,6 +1,6 @@
-package org.apache.spark.Scala.DBScan3DNaive
+package org.apache.spark.Scala.DBScan3DDistributed
 
-import org.apache.spark.Scala.DBScan3DNaive.DBScanLabeledPoint_3D.Flag
+import org.apache.spark.Scala.DBScan3DDistributed.DBScanLabeledPoint_3D.Flag
 import org.apache.spark.internal.Logging
 
 import scala.collection.mutable
