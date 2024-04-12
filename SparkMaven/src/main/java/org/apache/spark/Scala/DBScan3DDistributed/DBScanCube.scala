@@ -1,4 +1,4 @@
-package org.apache.spark.Scala.DBScan3DNaive
+package org.apache.spark.Scala.DBScan3DDistributed
 
 /*
 * A cuboid with left down corner of (x, y, t) and right upper corner of (x2, y2 ,t2)

@@ -1,6 +1,6 @@
 package org.apache.spark.Scala.utils.partition
 
-import org.apache.spark.Scala.DBScan3DNaive.DBScanCube
+import org.apache.spark.Scala.DBScan3DDistributed.DBScanCube
 import org.apache.spark.internal.Logging
 
 import scala.annotation.tailrec
@@ -192,7 +192,15 @@ class EvenSplitPartition_3D(maxPointsPerPartition: Long, minimumRectangleSize: D
     val partitions = partition(toPartition, patitioned, pointsIn)
     println("the Partitions are below:")
     partitions.foreach(println)
+    var summax:Int = 0
+    var summin:Int = Int.MaxValue
+    for ((cube,sum)<-partitions) {  //new_partition
+      if(sum>summax) summax = sum
+      if(sum<summin) summin = sum
+    }
+    println("points in partion max-min: ",summax-summin)
     println("Partitioning Done")
+
     partitions.filter({
       case (_, count) => count > 0
     })

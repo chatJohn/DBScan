@@ -2,7 +2,7 @@ package org.apache.spark.Scala.utils.partition
 
 import java.io.PrintWriter
 
-import org.apache.spark.Scala.DBScan3DNaive.{DBScanCube, DBScanPoint_3D}
+import org.apache.spark.Scala.DBScan3DDistributed.{DBScanCube, DBScanPoint_3D}
 
 
 object Cell_3D{
@@ -62,7 +62,7 @@ case class Cell_3D(pointCube: Array[DBScanPoint_3D], x_bounding: Double,y_boundi
       t <- t_split.init
     } yield DBScanCube(x, y, t, x + x_bounding, y + y_bounding, t + t_bounding)
     val cubetemp = cubes.toSet
-    println("cube size before filter",cubetemp.size)
+
     //过滤掉点数为0的Cube
     val cubetemp1: Set[(DBScanCube, Int)] = cubetemp
       .map { cube =>
@@ -71,7 +71,6 @@ case class Cell_3D(pointCube: Array[DBScanPoint_3D], x_bounding: Double,y_boundi
       .filter { case (_, count) =>
         count != 0
       }
-    println("cube size after filter",cubetemp1.size)
 
     //给Cube标记索引
     var index = 0
@@ -79,13 +78,6 @@ case class Cell_3D(pointCube: Array[DBScanPoint_3D], x_bounding: Double,y_boundi
       index=index+1
       (index ,cube, count)
     }
-
-    val filePath = "D:/START/distribute-ST-cluster/code/Louvain/cube.txt"
-    val writer = new PrintWriter(filePath)
-    pointofcube.foreach { case (id,cube,count) =>
-      writer.println(s"$id\t$count")
-    }
-    writer.close()
 
     pointofcube
   }

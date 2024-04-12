@@ -1,4 +1,4 @@
-package org.apache.spark.Scala.DBScan3DNaive
+package org.apache.spark.Scala.DBScan3DDistributed
 
 import org.apache.spark.mllib.linalg.Vector
 object DBScanPoint_3D{
