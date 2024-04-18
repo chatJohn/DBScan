@@ -4,6 +4,7 @@ import org.apache.spark.Scala.DBScan3DDistributed.{DBScanCube, DBScanPoint_3D}
 import org.apache.spark.Scala.utils.partition.Cell_3D.getCube
 import org.apache.spark.Scala.utils.partition.CellGraph_3D.getcellGraph
 import org.apache.spark.Scala.utils.partition.Kernighan_Lin.getPartition
+import org.apache.spark.Scala.utils.partition.Greedy.getGreedyPartition
 import scala.collection.mutable
 import scala.util.control.Breaks
 
@@ -16,19 +17,22 @@ object CubeSplitPartition_3D{
 
 
 case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Double, y_bounding: Double, t_bounding: Double, maxPointsPerPartition:Int) {
+
   def getSplits(): List[Set[DBScanCube]] = {
     val pointofCube: Set[(Int, DBScanCube, Int)] = getCube(points,x_bounding,y_bounding,t_bounding)
 
     val cellgraph: Graph = getcellGraph(pointofCube,x_bounding,y_bounding,t_bounding)
-//    println("cube graph vertices",cellgraph.vertices.size,"edges",cellgraph.edges.size)
+    println("cube graph vertices",cellgraph.vertices.size,"edges",cellgraph.edges.size)
 
     println("About to start partitioning...")
-//    val partitions = partition(cellgraph, pointofCube)
+//    val partitions = edgepartition(cellgraph, pointofCube)
 //    val partitions = partition1(pointofCube)
-    val partitions = getPartition(pointofCube,cellgraph,maxPointsPerPartition)
-
+//    val partitions = getPartition(pointofCube,cellgraph,maxPointsPerPartition)
+    val partitions = getGreedyPartition(pointofCube,cellgraph,maxPointsPerPartition)
     println("the Partitions are below:")
 //    partitions.foreach(println)
+
+    println("Partitioning Done")
     println("partitions size",partitions.size)
     println("Partitioning Done")
     partitions
@@ -67,7 +71,7 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
   }
 
   // node bianli
-  def partition(cellgraph: Graph, pointofCube: Set[(Int, DBScanCube, Int)]):List[Set[DBScanCube]] = {
+  def nodepartition(cellgraph: Graph, pointofCube: Set[(Int, DBScanCube, Int)]):List[Set[DBScanCube]] = {
     var cubepartition: List[Set[DBScanCube]] = List() //每个分区由若干个Cube组成
     var visited: Set[Int] = Set()
     for (vertex <- cellgraph.vertices) { //遍历分区，让同一分区的Cube索引存在一起
@@ -106,6 +110,63 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
         cubepartition = cubelist :: cubepartition
       }
     }
+    cubepartition
+  }
+
+
+  def idcountsum(pointofCube: Set[(Int, DBScanCube, Int)],cubeset:Set[Int]): Int ={
+    var sum = 0
+    for(cubeid<-cubeset){
+      pointofCube.find { case (idx, cube, count) => idx == cubeid } match {
+        case Some((_, cube, count)) =>
+          sum += count
+      }
+    }
+    sum
+  }
+  // edge bianli
+  def edgepartition(cellgraph: Graph, pointofCube: Set[(Int, DBScanCube, Int)]): List[Set[DBScanCube]] = {
+    // 创建一个映射，将点映射到它所在的集合
+    val pointToSet = mutable.Map[Int, Set[Int]]()
+    pointofCube.foreach { case (id, _, _) =>
+      pointToSet(id) = Set(id)
+    }
+
+    // 遍历图中的每条边
+    for (((id1, id2),_) <- cellgraph.edges) {
+      if(id1 >= 0 && id2 >= 0){
+        val set1 = pointToSet(id1)
+        val set2 = pointToSet(id2)
+        // 如果边相邻的两个集合不相等，且它们合并后的大小不超过阈值，则合并
+        if (set1 != set2 && (idcountsum(pointofCube,set1) + idcountsum(pointofCube,set2)) <= maxPointsPerPartition) {
+          val mergedSet = set1 ++ set2
+          mergedSet.foreach { cube =>
+            pointToSet(cube) = mergedSet
+          }
+        }
+      }
+    }
+    val cubeid = pointToSet.values.toList.distinct
+    var cubepartition: List[Set[DBScanCube]] = List() //每个分区由若干个Cube组成
+    var summax:Int = 0
+    var summin:Int = Int.MaxValue
+    var sum = 0
+    for(cubeidset <- cubeid){
+      var cubelist:Set[DBScanCube]=Set()
+      for(cubeid <- cubeidset){
+        pointofCube.find { case (idx, _, _) => idx == cubeid } match {
+          case Some((_, cube, count)) =>
+            cubelist += cube
+            sum += count
+        }
+      }
+      print(sum,"")
+      if(sum>summax) summax = sum
+      if(sum<summin) summin = sum
+      sum = 0
+      cubepartition = cubelist :: cubepartition
+    }
+    println("points in partion max-min: ",summax-summin)
     cubepartition
   }
 }

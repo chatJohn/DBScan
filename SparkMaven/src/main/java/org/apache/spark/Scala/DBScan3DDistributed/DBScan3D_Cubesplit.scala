@@ -7,10 +7,6 @@ import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.Scala.utils.partition.CubeSplitPartition_3D
 import org.apache.spark.Scala.utils.sample.Sample
-<<<<<<< HEAD:SparkMaven/src/main/java/org/apache/spark/Scala/DBScan3DNaive/DBScan3D_Cubesplit.scala
-=======
-
->>>>>>> origin/lwh:SparkMaven/src/main/java/org/apache/spark/Scala/DBScan3DDistributed/DBScan3D_Cubesplit.scala
 
 object DBScan3D_cubesplit{
   def train(data: RDD[Vector],
@@ -84,13 +80,10 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
       .collect()
     println("points.size",points.size)
 
-<<<<<<< HEAD:SparkMaven/src/main/java/org/apache/spark/Scala/DBScan3DNaive/DBScan3D_Cubesplit.scala
-    val samplePoints: RDD[DBScanPoint_3D] = Sample.sample(data, sampleRate = 0.1)
-=======
+
     val samplePoints: RDD[DBScanPoint_3D] = Sample.sample(data, sampleRate = 0.2)
     println("Sample Done: Sample count: ", samplePoints.collect().toList.size)
 
->>>>>>> origin/lwh:SparkMaven/src/main/java/org/apache/spark/Scala/DBScan3DDistributed/DBScan3D_Cubesplit.scala
       // New method
     val localPartitions: List[Set[DBScanCube]]
     = CubeSplitPartition_3D.getPartition(samplePoints.collect(),//points,
