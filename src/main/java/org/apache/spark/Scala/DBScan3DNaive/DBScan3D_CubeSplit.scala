@@ -42,7 +42,7 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
   def findAdjacencies(partitions: Iterable[(Int, DBScanLabeledPoint_3D)]): Set[((Int, Int), (Int, Int))] = {
 
     val zero = (Map[DBScanPoint_3D, ClusterID](), Set[(ClusterID, ClusterID)]())
-
+    val partitionsMap: Map[Int, DBScanLabeledPoint_3D] = partitions.toMap
     val (seen, adjacencies) = partitions.foldLeft(zero)({
       case ((seen, adajacencies), (partition, point)) => {
         // noise points are not relevant to any adajacencies
@@ -54,6 +54,17 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
           seen.get(point) match {
             case None => (seen + (point -> clusterId), adajacencies)
             case Some(preClusterId) => (seen, adajacencies + ((preClusterId, clusterId)))
+          }
+        }else{
+          val clusterId = (partition, point.cluster)
+          seen.get(point) match {
+            case Some(preClusterId) =>{
+              if(partitionsMap(preClusterId._1).flag == Flag.Core){
+                (seen, adajacencies + ((preClusterId, clusterId)))
+              }else{
+                (seen, adajacencies)
+              }
+            }
           }
         }
       }
