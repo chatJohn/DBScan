@@ -19,7 +19,7 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
   def getSplits(): List[Set[DBScanCube]] = {
     val pointOfCube: Set[(Int, DBScanCube, Int)] = getCube(points,x_bounding,y_bounding,t_bounding)
     val cellgraph: Graph = getCellGraph(pointOfCube,x_bounding,y_bounding,t_bounding)
-    println("About to start partitioning...")
+    println("About to start partitioning..." + points.size)
     val partitions = partition(cellgraph, pointOfCube)
     println("the Partitions are below:")
     partitions.foreach(println)

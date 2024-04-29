@@ -42,7 +42,8 @@ object DBScan3DTest {
 
 //    val DBScanRes: DBScan3D = DBScan3D.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition)
     val DBScanRes: DBScan3D_CubeSplit = DBScan3D_CubeSplit.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition, x_boundind, y_bounding, t_bounding)
-    DBScanRes.labeledPoints.coalesce(1).sortBy(x => x.cluster).saveAsTextFile(args(1))
+    println("DBScanRes: " + DBScanRes.labeledPoints)
+//    DBScanRes.labeledPoints.coalesce(1).sortBy(x => x.cluster).saveAsTextFile(args(1))
     sparkContext.stop()
   }
 }

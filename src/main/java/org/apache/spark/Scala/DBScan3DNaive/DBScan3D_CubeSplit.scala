@@ -36,18 +36,19 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
   type ClusterID = (Int, Int)
   def minimumRectangleSize: Double = 2 * distanceEps
   def minimumHigh: Double = 2 * timeEps
-  def labeledPoints: RDD[DBScanLabeledPoint_3D] = {
-    labeledPartitionedPoints.values // all labeled points in working space after implementing the DBScan
+  def labeledPoints: (RDD[DBScanLabeledPoint_3D], Long) = {
+    (labeledPartitionedPoints.values, labeledPartitionedPoints.count()) // all labeled points in working space after implementing the DBScan
   }
-  def findAdjacencies(partition: Iterable[(Int, DBScanLabeledPoint_3D)]): Set[((Int, Int), (Int, Int))] = {
+  def findAdjacencies(partitions: Iterable[(Int, DBScanLabeledPoint_3D)]): Set[((Int, Int), (Int, Int))] = {
+
     val zero = (Map[DBScanPoint_3D, ClusterID](), Set[(ClusterID, ClusterID)]())
 
-    val (seen, adjacencies) = partition.foldLeft(zero)({
+    val (seen, adjacencies) = partitions.foldLeft(zero)({
       case ((seen, adajacencies), (partition, point)) => {
         // noise points are not relevant to any adajacencies
         if (point.flag == Flag.Noise) {
           (seen, adajacencies)
-        } else {
+        } else if (point.flag == Flag.Core){
           val clusterId = (partition, point.cluster)
 
           seen.get(point) match {
@@ -72,14 +73,14 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
   }
 
   private def train(data: RDD[Vector]): DBScan3D_CubeSplit = {
-
+    println("The Begin of Program: the count of ds is: " + data.count())
     val points: Array[DBScanPoint_3D] = data
       .map(x => {
         DBScanPoint_3D(x) // give every point the minimum bounding rectangle
       })
       .collect()
     val samplePoints: RDD[DBScanPoint_3D] = Sample.sample(data, sampleRate = 0.1)
-
+    println("Sample Done Size: " + samplePoints.count()) // √
     // New method
     val localPartitions: List[Set[DBScanCube]]
     = CubeSplitPartition_3D.getPartition(samplePoints.collect(),
@@ -102,10 +103,10 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
 
     val duplicated: RDD[(Int, DBScanPoint_3D)] = for {
       point <- data.map(new DBScanPoint_3D(_))
-      (cubeset, id)<- margins.value
-      (inner, main, outer) <- cubeset
+      (cubeSet, id)<- margins.value
+      (inner, main, outer) <- cubeSet
       if outer.contains(point)
-    } yield (id, point) // the point in the partition with id
+    } yield (id, point) // the point in the partition with id, about all points and some points in outer margin
 
     val duplicatedCount: Long = duplicated.count()
     println("Total count of duplicated elements: " + duplicatedCount)
@@ -113,7 +114,7 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
     val numberOfPartitions: Int = localPartitions.size
     println("perform local DBScan")
     val clustered: RDD[(Int, DBScanLabeledPoint_3D)] = duplicated
-      .groupByKey(numberOfPartitions) // param: numPartitions
+      .groupByKey(numberOfPartitions) // param: numPartitions, parallel number
       .flatMapValues((points: Iterable[DBScanPoint_3D]) => {
         println("About to begin the local DBScan")
         new LocalDBScan_3D(distanceEps, timeEps, minPoints).fit(points)
@@ -136,10 +137,11 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
         })
       }
     }).groupByKey()
+
     println("find all candidate points Done!")
 
     println("About to find adjacencies")
-    val adjacencies = marginPoints.flatMapValues(x => findAdjacencies(x)).values.collect()
+    val adjacencies: Array[((Int, Int), (Int, Int))] = marginPoints.flatMapValues(x => findAdjacencies(x)).values.collect()
     val adjacenciesGraph = adjacencies.foldLeft(DBScanGraph_3D[ClusterID]())({
       case (graph, (from, to)) => graph.connect(from, to)
     })
@@ -154,17 +156,15 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
       .toList
 
     // assign a global cluster id to all clusters, where connected clusters get the same id
-
     val (total, clusterIdToGlobalId) = localClusterIds.foldLeft((0, Map[ClusterID, Int]()))({
       case ((id, map), clusterId) => {
         map.get(clusterId) match {
           case None => {
             val nextId = id + 1
-            val connectedClusters = adjacenciesGraph.getConnected(clusterId) + clusterId
+            val connectedClusters: Set[(Int, Int)] = adjacenciesGraph.getConnected(clusterId) + clusterId
             println(s"Connected cluster: $connectedClusters")
-
-            val toadd = connectedClusters.map((_, nextId)).toMap
-            (nextId, map ++ toadd)
+            val toAdd = connectedClusters.map((_, nextId)).toMap
+            (nextId, map ++ toAdd)
           }
           case Some(_) => (id, map)
         }
