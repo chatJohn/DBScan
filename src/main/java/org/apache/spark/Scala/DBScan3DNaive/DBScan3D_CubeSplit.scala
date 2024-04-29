@@ -65,6 +65,7 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
                 (seen, adajacencies)
               }
             }
+            case None => (seen, adajacencies)
           }
         }
       }
