@@ -27,8 +27,8 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
     println("About to start partitioning...")
 //    val partitions = edgepartition(cellgraph, pointofCube)
 //    val partitions = partition1(pointofCube)
-//    val partitions = getPartition(pointofCube,cellgraph,maxPointsPerPartition)
-    val partitions = getGreedyPartition(pointofCube,cellgraph,maxPointsPerPartition)
+    val partitions = getPartition(pointofCube,cellgraph,maxPointsPerPartition)
+//    val partitions = getGreedyPartition(pointofCube,cellgraph,maxPointsPerPartition)
     println("the Partitions are below:")
 //    partitions.foreach(println)
 

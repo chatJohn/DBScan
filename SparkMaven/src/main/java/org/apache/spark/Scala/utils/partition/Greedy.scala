@@ -86,11 +86,22 @@ case class Greedy(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Graph, Poin
       partitions(i) = mutable.Set[Int]()
     }
 
-    var partitionIndex = 0
-    for (i <- 1 to getSize) {
-      partitions(partitionIndex % k) += i
-      cube_par(i) = partitionIndex % k
-      partitionIndex += 1
+//    var partitionIndex = 0
+//    for (i <- 1 to getSize) {
+//      partitions(partitionIndex % k) += i
+//      cube_par(i) = partitionIndex % k
+//      partitionIndex += 1
+//    }
+    // 均衡初始化
+    val sortedCubes = pointofCube.toSeq.sortBy(-_._3)
+    val avgPointsPerPartition = sortedCubes.map(_._3).sum / k
+
+    var pointsAdded = 0
+    sortedCubes.foreach { case (cubeId, _, numPoints) =>
+      val partitionIndex = pointsAdded / avgPointsPerPartition
+      partitions(partitionIndex) += cubeId
+      cube_par(cubeId) = partitionIndex
+      pointsAdded += numPoints
     }
 
     println("\nBefore Greedy")

@@ -12,7 +12,7 @@ object DBScan3DDistributedTest {
 //spark submit --数据集路径 --result路径 --distanceEps --timeEps --minPoints --maxPointsPerPartition
   def main(args: Array[String]): Unit = {
     val directoryPath = "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id"
-//    val fileList = Array("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\100.txt"
+//    val fileList = Array("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\1.txt"
 //    )
     val fileList = (100 to 110).map(i => s"$directoryPath\\$i.txt").toArray
 //    val fileList = Array(args(0))
@@ -77,9 +77,22 @@ object DBScan3DDistributedTest {
     val endTime = System.currentTimeMillis()
     val total = endTime - startTime
     println(s"Total Time Cost: $total")
-
-    DBScanRes.labeledPoints.coalesce(1).sortBy(x => x.cluster).saveAsTextFile("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\result")
+    println("DBScanRes.labeledPoints",DBScanRes.labeledPoints.count())
 //    DBScanRes.labeledPoints.coalesce(1).sortBy(x => x.cluster).saveAsTextFile(args(1))
+
+    val collectedResults = DBScanRes.labeledPoints.sortBy(x => x.cluster).collect()
+    val totalClusters = DBScanRes.labeledPoints.map(_.cluster).distinct().count()-1
+    val outputPath = args(1)
+    val outputFile = new java.io.PrintWriter(outputPath)
+    outputFile.write("")
+    try {
+      outputFile.println(s"$total ms")
+      outputFile.println(s"$totalClusters Clusters")
+      collectedResults.foreach(result => outputFile.println(result))
+    } finally {
+      outputFile.close()
+    }
     sparkContext.stop()
+
   }
 }

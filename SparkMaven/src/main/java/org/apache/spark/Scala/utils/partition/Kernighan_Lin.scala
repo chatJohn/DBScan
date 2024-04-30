@@ -198,11 +198,21 @@ case class Kernighan_Lin(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Grap
       partitions(i) = mutable.Set[Int]()
     }
 
+    // 随机初始化
     var partitionIndex = 0
     for (i <- 1 to getSize) {
       partitions(partitionIndex % k) += i
       partitionIndex += 1
     }
+    // 均衡初始化
+//    val sortedCubes = pointofCube.toSeq.sortBy(-_._3)
+//    val avgPointsPerPartition = sortedCubes.map(_._3).sum / k
+//    var pointsAdded = 0
+//    sortedCubes.foreach { case (cubeId, _, numPoints) =>
+//      val partitionIndex = pointsAdded / avgPointsPerPartition
+//      partitions(partitionIndex) += cubeId
+//      pointsAdded += numPoints
+//    }
 
 //    println("\nBefore KL")
 //    print_partion_weight(partitions)
