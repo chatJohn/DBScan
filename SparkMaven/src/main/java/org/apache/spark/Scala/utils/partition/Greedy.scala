@@ -72,7 +72,6 @@ case class Greedy(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Graph, Poin
     partitionstemp(cube_par(i)).remove(i)
     partitionstemp(j).add(i)
     val cost =  getCost(partitionstemp)     //计算移动后的全局权重
-//    println(cost)
     if(cost>maxcost) true
     else false
   }
@@ -81,28 +80,28 @@ case class Greedy(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Graph, Poin
     // 初始化分区
     val partitions = mutable.Map[Int, mutable.Set[Int]]()
     val cube_par = mutable.Map[Int, Int]()  //存每个节点所属的分区
-    val k = 12
+    val k = PointsPerPartition
     for (i <- 0 until k) {
       partitions(i) = mutable.Set[Int]()
     }
 
-//    var partitionIndex = 0
-//    for (i <- 1 to getSize) {
-//      partitions(partitionIndex % k) += i
-//      cube_par(i) = partitionIndex % k
-//      partitionIndex += 1
-//    }
-    // 均衡初始化
-    val sortedCubes = pointofCube.toSeq.sortBy(-_._3)
-    val avgPointsPerPartition = sortedCubes.map(_._3).sum / k
-
-    var pointsAdded = 0
-    sortedCubes.foreach { case (cubeId, _, numPoints) =>
-      val partitionIndex = pointsAdded / avgPointsPerPartition
-      partitions(partitionIndex) += cubeId
-      cube_par(cubeId) = partitionIndex
-      pointsAdded += numPoints
+    var partitionIndex = 0
+    for (i <- 1 to getSize) {
+      partitions(partitionIndex % k) += i
+      cube_par(i) = partitionIndex % k
+      partitionIndex += 1
     }
+    // 均衡初始化
+//    val sortedCubes = pointofCube.toSeq.sortBy(-_._3)
+//    val avgPointsPerPartition = sortedCubes.map(_._3).sum / k
+//
+//    var pointsAdded = 0
+//    sortedCubes.foreach { case (cubeId, _, numPoints) =>
+//      val partitionIndex = pointsAdded / avgPointsPerPartition
+//      partitions(partitionIndex) += cubeId
+//      cube_par(cubeId) = partitionIndex
+//      pointsAdded += numPoints
+//    }
 
     println("\nBefore Greedy")
     println(getCost(partitions))
@@ -136,7 +135,7 @@ case class Greedy(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Graph, Poin
             cubelist += cube
         }
       }
-      cubepartition = cubelist :: cubepartition
+      if(sum!=0) cubepartition = cubelist :: cubepartition
       print(sum,"")
       if(sum>summax) summax = sum
       if(sum<summin) summin = sum

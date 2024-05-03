@@ -119,7 +119,7 @@ extends Serializable with  Logging{
   private def train(data: RDD[Vector]):DBScan3D = {
     val sampledata = data.sample(withReplacement = false, 1, seed = 9961)
     println("data",sampledata.count())
-    val minimumCubeWithCount: Set[(DBScanCube, Int)] = sampledata //data
+    val minimumCubeWithCount: Set[(DBScanCube, Int)] = data//sampledata
       .map(x => {
         toMinimumBoundingCube(x) // give every point the minimum bounding rectangle
       })

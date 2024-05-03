@@ -11,11 +11,14 @@ import org.apache.spark.Scala.DBScan3DDistributed.DBScan3D_cubesplit
 object DBScan3DDistributedTest {
 //spark submit --数据集路径 --result路径 --distanceEps --timeEps --minPoints --maxPointsPerPartition
   def main(args: Array[String]): Unit = {
-    val directoryPath = "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id"
+//    val directoryPath = "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id"
 //    val fileList = Array("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\1.txt"
 //    )
-    val fileList = (100 to 110).map(i => s"$directoryPath\\$i.txt").toArray
-//    val fileList = Array(args(0))
+    val directoryPath = args(0)
+    val st = args(9).toInt
+    val en = args(10).toInt
+    val fileList = (st to en).map(i => s"$directoryPath\\$i.txt").toArray//
+//    val fileList = args(0)
 //    val fileList = ("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\point_r_10w")
     val conf = new SparkConf()
 
@@ -82,12 +85,21 @@ object DBScan3DDistributedTest {
 
     val collectedResults = DBScanRes.labeledPoints.sortBy(x => x.cluster).collect()
     val totalClusters = DBScanRes.labeledPoints.map(_.cluster).distinct().count()-1
+    val clusterCounts = collectedResults
+      .filter(_.cluster != 0)
+      .groupBy(_.cluster)
+      .mapValues(_.size)
+      .toSeq
+      .sortBy(_._1) // 按簇 ID 从小到大排序
+    val clusterCountLines = clusterCounts.map { case (clusterId, count) => s"Cluster $clusterId: $count points" }.mkString("\n")
+
     val outputPath = args(1)
     val outputFile = new java.io.PrintWriter(outputPath)
     outputFile.write("")
     try {
       outputFile.println(s"$total ms")
       outputFile.println(s"$totalClusters Clusters")
+      outputFile.println(clusterCountLines)
       collectedResults.foreach(result => outputFile.println(result))
     } finally {
       outputFile.close()

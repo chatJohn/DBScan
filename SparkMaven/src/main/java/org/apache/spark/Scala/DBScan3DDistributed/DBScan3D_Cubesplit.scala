@@ -113,7 +113,7 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
       .collect()
     println("points.size",points.size)
 
-    val samplePoints: RDD[DBScanPoint_3D] = Sample.sample(data, sampleRate =0.2)
+    val samplePoints: RDD[DBScanPoint_3D] = Sample.sample(data, sampleRate =0.1)
     println("Sample Done: Sample count: ", samplePoints.collect().toList.size)
 
       // New method
@@ -173,12 +173,11 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
 
     val marginPoints: RDD[(Int, Iterable[(Int, DBScanLabeledPoint_3D)])] = clustered.flatMap({
       case (partition, point) => {
-        margins.value.map {
+        margins.value.filter {
           case (cubeSet, id) =>
-            val filteredCubeSet = cubeSet.filter {
+            cubeSet.exists {
               case (inner, main, outer) => main.contains(point) && !inner.almostContains(point)
             }
-            (filteredCubeSet, id)
         }.map({
           case (_, newPartition) => (newPartition, (partition, point))
         })
@@ -224,7 +223,7 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
     println(s"Total Clusters: ${localClusterIds.size}, Unique: $total")
 
     val clusterIds = data.context.broadcast(clusterIdToGlobalId)
-
+    println("sum of points------------------------------------",clustered.count())
     println("About to relabel inner points")
     val labeledInner: RDD[(Int, DBScanLabeledPoint_3D)] = clustered.filter(isInnerPoint(_, margins.value))
       .map({
@@ -235,7 +234,7 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
           (partition, point)
         }
       })
-
+    println("sum of inner points------------------------------------",labeledInner.count())
     println("About to relabel outer points")
     val labeledOuter =
       marginPoints.flatMapValues(partition => {
@@ -250,16 +249,26 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
               case None => all + (point -> point)
               case Some(prev) => {
                 // override previous entry unless new entry is noise
-                if (point.flag != Flag.Noise) {
+                if ((point.flag==Flag.Core&&prev.flag==Flag.Border)||(point.flag==Flag.Border&&prev.flag==Flag.Noise)) {
                   prev.flag = point.flag
                   prev.cluster = point.cluster
                 }
-                all
+                else if(point.flag==prev.flag){}
+                else{
+                  point.flag = prev.flag
+                  point.cluster = prev.cluster
+                }
+                all+ (point -> point)
               }
             }
         }).values
       })
 
+    val totalPoints: Long = marginPoints.map { case (_, iterable) =>
+      iterable.size
+    }.reduce(_ + _)
+    println("sum of margin points------------------------------------",totalPoints)
+    println("sum of inner outer points------------------------------------",labeledOuter.count())
     println("Done")
     new DBScan3D_cubesplit(
       distanceEps,
