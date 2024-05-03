@@ -35,7 +35,6 @@ extends Serializable with  Logging{
   }
   def findAdjacencies(partition: Iterable[(Int, DBScanLabeledPoint_3D)]): Set[((Int, Int), (Int, Int))] = {
     val zero = (Map[DBScanPoint_3D, ClusterID](), Set[(ClusterID, ClusterID)]())
-
     val (seen, adjacencies) = partition.foldLeft(zero)({
       case ((seen, adajacencies), (partition, point)) => {
         // noise points are not relevant to any adajacencies
@@ -53,6 +52,7 @@ extends Serializable with  Logging{
     })
     adjacencies
   }
+
   def isInnerPoint(entry: (Int, DBScanLabeledPoint_3D), margins: List[(Margin, Int)]): Boolean = {
     entry match {
       case (partition, point) => {

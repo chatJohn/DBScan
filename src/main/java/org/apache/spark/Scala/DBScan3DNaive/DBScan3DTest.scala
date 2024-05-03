@@ -53,9 +53,9 @@ object DBScan3DTest {
     val minPoints: Int = args(4).toInt
     val maxPointsPerPartition: Int = args(5).toInt
     // new partition method params
-    val x_boundind: Double = 1.0
-    val y_bounding: Double = 1.0
-    val t_bounding: Double = 1.0
+    val x_boundind: Double = args(6).toDouble
+    val y_bounding: Double = args(7).toDouble
+    val t_bounding: Double = args(8).toDouble
 
 //    val DBScanRes: DBScan3D = DBScan3D.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition)
     val DBScanRes: DBScan3D_CubeSplit = DBScan3D_CubeSplit.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition, x_boundind, y_bounding, t_bounding)
