@@ -2,6 +2,7 @@ package org.apache.spark.Scala.DBScan3DNaive
 
 import org.apache.spark.Scala.DBScan3DNaive.DBScanLabeledPoint_3D.Flag
 import org.apache.spark.Scala.utils.partition.EvenSplitPartition_3D
+import org.apache.spark.Scala.utils.sample.Sample
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
@@ -33,19 +34,33 @@ extends Serializable with  Logging{
   def labeledPoints: RDD[DBScanLabeledPoint_3D] = {
     labeledPartitionedPoints.values // all labeled points in working space after implementing the DBScan
   }
-  def findAdjacencies(partition: Iterable[(Int, DBScanLabeledPoint_3D)]): Set[((Int, Int), (Int, Int))] = {
+  def findAdjacencies(partitions: Iterable[(Int, DBScanLabeledPoint_3D)]): Set[((Int, Int), (Int, Int))] = {
+
     val zero = (Map[DBScanPoint_3D, ClusterID](), Set[(ClusterID, ClusterID)]())
-    val (seen, adjacencies) = partition.foldLeft(zero)({
+    val partitionsMap: Map[Int, DBScanLabeledPoint_3D] = partitions.toMap
+    val (seen, adjacencies) = partitions.foldLeft(zero)({
       case ((seen, adajacencies), (partition, point)) => {
         // noise points are not relevant to any adajacencies
         if (point.flag == Flag.Noise) {
           (seen, adajacencies)
-        } else {
+        } else if (point.flag == Flag.Core){
           val clusterId = (partition, point.cluster)
 
           seen.get(point) match {
             case None => (seen + (point -> clusterId), adajacencies)
             case Some(preClusterId) => (seen, adajacencies + ((preClusterId, clusterId)))
+          }
+        }else{
+          val clusterId = (partition, point.cluster)
+          seen.get(point) match {
+            case Some(preClusterId) =>{
+              if(partitionsMap(preClusterId._1).flag == Flag.Core){
+                (seen, adajacencies + ((preClusterId, clusterId)))
+              }else{
+                (seen, adajacencies)
+              }
+            }
+            case None => (seen, adajacencies)
           }
         }
       }
@@ -83,7 +98,8 @@ extends Serializable with  Logging{
   }
   private def train(data: RDD[Vector]): DBScan3D = {
     println("About to train")
-    val minimumCubeWithCount: Set[(DBScanCube, Int)] = data
+    val samplePoints = data.sample(false, 0.1, 9961)
+    val minimumCubeWithCount: Set[(DBScanCube, Int)] = samplePoints
       .map(x => {
         toMinimumBoundingCube(x) // give every point the minimum bounding rectangle
       })
@@ -110,6 +126,7 @@ extends Serializable with  Logging{
       ((inner, main, outer), id) <- margins.value
       if outer.contains(point)
     } yield (id, point) // the point in the partition with id
+
 
     val numberOfPartitions: Int = localPartitions.size
     println("perform local DBScan")

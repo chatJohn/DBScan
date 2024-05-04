@@ -5,7 +5,7 @@ import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
-import org.apache.spark.Scala.utils.partition.CubeSplitPartition_3D
+import org.apache.spark.Scala.utils.partition.{CubeSplitPartition_3D, EvenSplitPartition_3D}
 import org.apache.spark.Scala.utils.sample.Sample
 
 object DBScan3D_CubeSplit{
@@ -92,7 +92,7 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
       })
       .collect()
     val samplePoints: RDD[DBScanPoint_3D] = Sample.sample(data, sampleRate = 0.1)
-    println("Sample Done Size: " + samplePoints.count()) // √
+    println("Sample Done Size: " + samplePoints.count())
     // New method
     val localPartitions: List[Set[DBScanCube]]
     = CubeSplitPartition_3D.getPartition(samplePoints.collect(),
@@ -101,6 +101,7 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
       t_bounding,
       maxPointsPerPartition
     )
+
 
     var localCubeTemp: List[Set[(DBScanCube, DBScanCube, DBScanCube)]] = List()
     for(cubeSet <- localPartitions){
