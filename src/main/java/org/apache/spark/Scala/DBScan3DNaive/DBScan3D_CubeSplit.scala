@@ -91,11 +91,11 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
         DBScanPoint_3D(x) // give every point the minimum bounding rectangle
       })
       .collect()
-    val samplePoints: RDD[DBScanPoint_3D] = Sample.sample(data, sampleRate = 0.1)
-    println("Sample Done Size: " + samplePoints.count())
+    val samplePoints: Array[DBScanPoint_3D] = Sample.sample(data, sampleRate = 0.1)
+    println("Sample Done Size: " + samplePoints.size)
     // New method
     val localPartitions: List[Set[DBScanCube]]
-    = CubeSplitPartition_3D.getPartition(samplePoints.collect(),
+    = CubeSplitPartition_3D.getPartition(samplePoints,
       x_bounding,
       y_bounding,
       t_bounding,
@@ -153,7 +153,7 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
                 case (inner, main, _) => main.contains(point) && !inner.almostContains(point)
               })
             }
-        }).map({
+          }).map({
           case (_, newPartition) => (newPartition, (partition, point))
         })
       }

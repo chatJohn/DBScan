@@ -15,6 +15,7 @@ object FileProcess{
 }
 
 case class FileProcess() {
+
   def getFileList(directoryPath: String): Array[String] = {
     val filePath = new File(directoryPath)
     val files: Array[File] = filePath.listFiles()
@@ -26,22 +27,52 @@ case class FileProcess() {
     }
     fileList
   }
-  def DataProcess(line: String):  (Double, Double, Double) = {
+
+  def ChengDuDataProcess(line: String):  (Double, Double, Double) = {
     val dateFormat = new SimpleDateFormat(Date_Format)
     val referDate: Date = dateFormat.parse(Original_Date)
     val timestamp: Long = referDate.getTime // 毫秒
-   // println("parse string:", (Date_Regex findFirstIn (line) toString).replace("Some(", "").replace(")", ""))
+    // println("parse string:", (Date_Regex findFirstIn (line) toString).replace("Some(", "").replace(")", ""))
     val date: Date = dateFormat.parse((Date_Regex findFirstIn (line) toString).
-                      replace("Some(", "").replace(")", ""))
+      replace("Some(", "").replace(")", ""))
     var t: Double = date.getTime.toDouble
     t = (t - timestamp) / 100000
     val spaceStr: String = (Position_Regex findFirstIn(Point_Regex findFirstIn(line) toString) toString)
-                          .replace("Some((", "")
-                          .replace(")))", "")
+      .replace("Some((", "")
+      .replace(")))", "")
 
-//    println("space str: ", spaceStr)
+    //    println("space str: ", spaceStr)
     val spaceArr = spaceStr.split(" ")
-//    println("space Arr: ", spaceArr(0))
+    //    println("space Arr: ", spaceArr(0))
+    (spaceArr(0).toDouble, spaceArr(1).toDouble, t)
+  }
+
+
+  def TaxiDataProcess(line: String): (Double, Double, Double) = {
+    val strings = line.split(",")
+    val dateFormat = new SimpleDateFormat(Date_Format)
+    val referDate: Date = dateFormat.parse(Original_Date)
+    val timestamp: Long = referDate.getTime
+    val date: Date = dateFormat.parse(strings(1))
+    var t: Double = date.getTime.toDouble
+    t = (t - timestamp)/ 100000
+    (strings(2).toDouble, strings(3).toDouble, t)
+  }
+
+  def NewYorkDataProcess(line: String): (Double, Double, Double) = {
+    val strings = line.split(",")
+
+    val dateFormat = new SimpleDateFormat(Date_Format)
+    val referDate: Date = dateFormat.parse(Original_Date)
+    val timestamp: Long = referDate.getTime
+    val date: Date = dateFormat.parse(strings(3))
+    var t: Double = date.getTime.toDouble
+    t = (t - timestamp)/ 100000
+    val spaceStr: String = (Position_Regex findFirstIn(Point_Regex findFirstIn(line) toString) toString)
+      .replace("Some((", "")
+      .replace(")))", "")
+    val spaceArr = spaceStr.split(" ")
+    println("data process Done")
     (spaceArr(0).toDouble, spaceArr(1).toDouble, t)
   }
 }
