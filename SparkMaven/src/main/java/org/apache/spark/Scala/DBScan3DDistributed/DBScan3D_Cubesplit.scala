@@ -105,7 +105,7 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
   }
 
   private def train(data: RDD[Vector]): DBScan3D_cubesplit = {
-
+    val start1 = System.currentTimeMillis()
     val points: Array[DBScanPoint_3D] = data
       .map(x => {
         DBScanPoint_3D(x) // give every point the minimum bounding rectangle
@@ -156,21 +156,22 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
         foundPoints
       }
     }
-
+    val end1 = System.currentTimeMillis()
     val duplicatedCount: Long = duplicated.count()
     println("Total count of duplicated elements: " + duplicatedCount)
 
     val numberOfPartitions: Int = localPartitions.size
     println("perform local DBScan")
+    val start2 = System.currentTimeMillis()
     val clustered: RDD[(Int, DBScanLabeledPoint_3D)] = duplicated
       .groupByKey(numberOfPartitions) // param: numPartitions
       .flatMapValues((points: Iterable[DBScanPoint_3D]) => {
         println("About to begin the local DBScan")
         new LocalDBScan_3D(distanceEps, timeEps, minPoints).fit(points)
       }) // different partition has different clustering
-
+    val end2 = System.currentTimeMillis()
     println("find all candidate points for merging clusters and group them => inner margin & outer margin")
-
+    val start3 = System.currentTimeMillis()
     val marginPoints: RDD[(Int, Iterable[(Int, DBScanLabeledPoint_3D)])] = clustered.flatMap({
       case (partition, point) => {
         margins.value.filter {
@@ -223,7 +224,7 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
     println(s"Total Clusters: ${localClusterIds.size}, Unique: $total")
 
     val clusterIds = data.context.broadcast(clusterIdToGlobalId)
-    println("sum of points------------------------------------",clustered.count())
+//    println("sum of points------------------------------------",clustered.count())
     println("About to relabel inner points")
     val labeledInner: RDD[(Int, DBScanLabeledPoint_3D)] = clustered.filter(isInnerPoint(_, margins.value))
       .map({
@@ -234,7 +235,7 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
           (partition, point)
         }
       })
-    println("sum of inner points------------------------------------",labeledInner.count())
+//    println("sum of inner points------------------------------------",labeledInner.count())
     println("About to relabel outer points")
     val labeledOuter =
       marginPoints.flatMapValues(partition => {
@@ -263,13 +264,18 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
             }
         }).values
       })
-
-    val totalPoints: Long = marginPoints.map { case (_, iterable) =>
-      iterable.size
-    }.reduce(_ + _)
-    println("sum of margin points------------------------------------",totalPoints)
-    println("sum of inner outer points------------------------------------",labeledOuter.count())
+    val end3 = System.currentTimeMillis()
+//    val totalPoints: Long = marginPoints.map { case (_, iterable) =>
+//      iterable.size
+//    }.reduce(_ + _)
+//    println("sum of margin points------------------------------------",totalPoints)
+//    println("sum of inner outer points------------------------------------",labeledOuter.count())
     println("Done")
+    println("Total count of duplicated elements: " + duplicatedCount)
+    println("Partition Time Cost: ",end1-start1)
+    println("Local Time Cost: ",end2-start2)
+    println("Merge Time Cost: ",end3-start3)
+    println("----------------------------------------------------------------------")
     new DBScan3D_cubesplit(
       distanceEps,
       timeEps,

@@ -4,12 +4,12 @@ import org.apache.spark.Scala.DBScan3DDistributed.DBScanCube
 import scala.collection.mutable
 
 object Greedy{
-  def getGreedyPartition(pointofCube:Set[(Int, DBScanCube, Int)], cellgraph:Graph, PointsPerPartition:Int): List[Set[DBScanCube]] = {
-    new Greedy(pointofCube,cellgraph,PointsPerPartition).KLresult()
+  def getGreedyPartition(pointofCube:Set[(Int, DBScanCube, Int)], cellgraph:Graph, PointsPerPartition:Int,kk:Int): List[Set[DBScanCube]] = {
+    new Greedy(pointofCube,cellgraph,PointsPerPartition,kk).KLresult()
   }
 }
 
-case class Greedy(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Graph, PointsPerPartition:Int) {
+case class Greedy(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Graph, PointsPerPartition:Int,kk:Int) {
 
   def getWeight(node1: Int, node2: Int): Double = {
     cellgraph.edges.getOrElse((node1, node2), 0.0)
@@ -80,7 +80,7 @@ case class Greedy(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Graph, Poin
     // 初始化分区
     val partitions = mutable.Map[Int, mutable.Set[Int]]()
     val cube_par = mutable.Map[Int, Int]()  //存每个节点所属的分区
-    val k = PointsPerPartition
+    val k = kk
     for (i <- 0 until k) {
       partitions(i) = mutable.Set[Int]()
     }

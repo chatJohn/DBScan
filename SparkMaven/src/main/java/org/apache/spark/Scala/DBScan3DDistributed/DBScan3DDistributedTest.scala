@@ -12,22 +12,23 @@ object DBScan3DDistributedTest {
 //spark submit --数据集路径 --result路径 --distanceEps --timeEps --minPoints --maxPointsPerPartition
   def main(args: Array[String]): Unit = {
 //    val directoryPath = "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id"
-//    val fileList = Array("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\1.txt"
-//    )
+//    val fileList = Array("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\1.txt")
+//    val fileList = Array("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\trip_data_1.csv")//NY20w1
+
     val directoryPath = args(0)
     val st = args(9).toInt
     val en = args(10).toInt
-    val fileList = (st to en).map(i => s"$directoryPath\\$i.txt").toArray//
+    val fileList = (st to en).map(i => s"$directoryPath/$i.txt").toArray
 //    val fileList = args(0)
 //    val fileList = ("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\point_r_10w")
     val conf = new SparkConf()
 
-    conf.setMaster("local[5]").setAppName("DBScan")
-//    conf.setMaster("spark://startserver02:7077")
+//    conf.setMaster("local[5]").setAppName("DBScan")
+    conf.setMaster("spark://10.242.6.19:7077")
 
     val sparkContext: SparkContext = new SparkContext(conf)
-    val lineRDD: RDD[String] = sparkContext.textFile(fileList.mkString(","), 10)
-
+    val lineRDD1: RDD[String] = sparkContext.textFile(fileList.mkString(","), 10)
+    val lineRDD: RDD[String] = lineRDD1.filter(line => !line.startsWith("medallion,"))
     // 以一个标准时间获取时间差2008-02-02 18:44:58
     val originDate = "2018-10-01 00:30:00"
     val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
@@ -36,9 +37,10 @@ object DBScan3DDistributedTest {
 
     val VectorRDD: RDD[Vector] = lineRDD.map(x => {
       val strings: Array[String] = x.split(",")
+
       val date: Date = dateFormat.parse(strings(1))
       // New York
-//      val date: Date = dateFormat.parse(strings(3))
+//      val date: Date = dateFormat.parse(strings(5))
       //chengdu
 //      val date: Date = dateFormat.parse(strings(3))
       var t: Double = date.getTime.toDouble
@@ -46,7 +48,7 @@ object DBScan3DDistributedTest {
 
       (strings(2).toDouble, strings(3).toDouble, t)
       // New York
-//      (strings(2).toDouble, strings(3).toDouble, t)
+//      (strings(10).toDouble, strings(11).toDouble, t)
       //chengdu
 //      val spacestr=strings(4).replaceAll("POINT \\(([^\\s]+) ([^\\s]+)\\)", "$1,$2")
 //      val spaceArray: Array[String]= spacestr.split(",")
@@ -73,9 +75,9 @@ object DBScan3DDistributedTest {
 
     val startTime = System.currentTimeMillis()
 
-//    val DBScanRes: DBScan3D = DBScan3D.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition)
-    val DBScanRes: DBScan3D_cubesplit = DBScan3D_cubesplit.train(VectorRDD, distanceEps,
-      timeEps, minPoints, maxPointsPerPartition, x_bounding, y_bounding, t_bounding)
+    val DBScanRes: DBScan3D = DBScan3D.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition)
+//    val DBScanRes: DBScan3D_cubesplit = DBScan3D_cubesplit.train(VectorRDD, distanceEps,
+//      timeEps, minPoints, maxPointsPerPartition, x_bounding, y_bounding, t_bounding)
 
     val endTime = System.currentTimeMillis()
     val total = endTime - startTime

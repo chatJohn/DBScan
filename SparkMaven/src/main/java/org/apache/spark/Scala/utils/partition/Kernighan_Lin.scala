@@ -110,7 +110,7 @@ case class Kernighan_Lin(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Grap
     }
 
     val (maxCost, index) = getMaxCostAndIndex(costs)
-
+    println(maxCost)
     if (maxCost > 0) {
       val newA = (Y.take(index + 1) ++ X.drop(index + 1)).toSet
       val newB = (X.take(index + 1) ++ Y.drop(index + 1)).toSet
@@ -118,6 +118,7 @@ case class Kernighan_Lin(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Grap
     } else {
       (X.toSet, Y.toSet, true)
     }
+
   }
 
   def print_partion_weight(partitions:mutable.Map[Int, mutable.Set[Int]]): Unit ={
@@ -204,6 +205,7 @@ case class Kernighan_Lin(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Grap
       partitions(partitionIndex % k) += i
       partitionIndex += 1
     }
+    print(partitions)
     // 均衡初始化
 //    val sortedCubes = pointofCube.toSeq.sortBy(-_._3)
 //    val avgPointsPerPartition = sortedCubes.map(_._3).sum / k
