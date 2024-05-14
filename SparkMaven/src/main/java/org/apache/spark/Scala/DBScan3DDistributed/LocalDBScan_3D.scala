@@ -41,6 +41,7 @@ class LocalDBScan_3D(distanceEps: Double, timeEps: Double, minPoints: Int) exten
       point.distanceSquared(other) <= minDistanceSquared && point.timeAbs(other) <= minTimeAbs
     })
   }
+
   def expandCluster(point: DBScanLabeledPoint_3D,
                     neighbors: Iterable[DBScanLabeledPoint_3D],
                     all: Array[DBScanLabeledPoint_3D],
@@ -69,5 +70,40 @@ class LocalDBScan_3D(distanceEps: Double, timeEps: Double, minPoints: Int) exten
       })
     }
   }
+//  def expandCluster(point: DBScanLabeledPoint_3D,
+//                    neighbors: Iterable[DBScanLabeledPoint_3D],
+//                    all: Array[DBScanLabeledPoint_3D],
+//                    cluster: Int): Unit = {
+//    point.flag = Flag.Core
+//    point.cluster = cluster
+//
+//    // 创建一个队列，用于存储待处理的邻居
+//    val neighborQueue = mutable.Queue(neighbors.toSeq: _*)
+//
+//    while (neighborQueue.nonEmpty) {
+//      // 从队列中获取下一个邻居
+//      val neighbor = neighborQueue.dequeue()
+//
+//      if (!neighbor.visited) {
+//        neighbor.visited = true
+//        neighbor.cluster = cluster
+//
+//        // 查找当前邻居的邻居
+//        val neighborNeighbors = findNeighbors(neighbor, all)
+//
+//        if (neighborNeighbors.size >= minPoints) {
+//          neighbor.flag = Flag.Core
+//          // 将当前邻居的邻居加入队列
+//          neighborQueue.enqueue(neighborNeighbors.toSeq: _*)
+//        } else {
+//          neighbor.flag = Flag.Border
+//        }
+//      } else if (neighbor.cluster == DBScanLabeledPoint_3D.Unknown) {
+//        // 如果邻居之前被标记为 Noise，则更新其簇和标志
+//        neighbor.cluster = cluster
+//        neighbor.flag = Flag.Border
+//      }
+//    }
+//  }
 
 }

@@ -11,20 +11,38 @@ object DBScan3DTest {
   def main(args: Array[String]): Unit = {
     val directoryPath = "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id"
     val fileList = (100 to 110).map(i => s"$directoryPath\\$i.txt").toArray
-
+//    val fileList = Array(args(0))
     val originDate = "2018-10-01 00:30:00"
     val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
     val referDate = dateFormat.parse(originDate)
     val timestamp: Long = referDate.getTime
+
+//    val VectorRDD: Array[Vector] = fileList.flatMap { file =>
+//      val lines = Source.fromFile(file).getLines()
+//      lines.map { line =>
+//        val strings = line.split(",")
+//        val date = dateFormat.parse(strings(1))
+//        var t: Double = date.getTime.toDouble
+//        t = (t - timestamp) / 100000
+//        Vectors.dense(Array(strings(2).toDouble, strings(3).toDouble, t))
+//      }
+//    }.toArray
 
     val VectorRDD: Array[Vector] = fileList.flatMap { file =>
       val lines = Source.fromFile(file).getLines()
       lines.map { line =>
         val strings = line.split(",")
         val date = dateFormat.parse(strings(1))
+        //chengdu
+//        val date = dateFormat.parse(strings(3))
         var t: Double = date.getTime.toDouble
         t = (t - timestamp) / 100000
-        Vectors.dense(Array(strings(2).toDouble, strings(3).toDouble, t))
+        Vectors.dense(Array(strings(2).toDouble,strings(3).toDouble, t))
+        //chengdu
+//        val spacestr=strings(4).replaceAll("POINT \\(([^\\s]+) ([^\\s]+)\\)", "$1,$2")
+//        val spaceArray: Array[String]= spacestr.split(",")
+//        Vectors.dense(Array(spaceArray(0).toDouble,spaceArray(1).toDouble, t))
+
       }
     }.toArray
 
@@ -38,8 +56,8 @@ object DBScan3DTest {
     val total = endTime - startTime
     println(s"Total Time Cost: $total")
 
-    val resultPath = "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\result\\result.txt"
-//    val resultPath = args(1)
+//    val resultPath = "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\result\\result.txt"
+    val resultPath = args(1)
     val resultFile = new File(resultPath)
     val writer = new PrintWriter(resultFile)
     try {

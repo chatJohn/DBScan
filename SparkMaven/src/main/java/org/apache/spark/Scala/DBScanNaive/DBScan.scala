@@ -133,7 +133,7 @@ class DBScan private(val eps: Double,
 
     println("About to train")
     // 构建全局的bitMap, 和CountingBloomFilter
-
+    println("points.size",vectors.count())
 
 
     val minimumRectangleWithCount = vectors

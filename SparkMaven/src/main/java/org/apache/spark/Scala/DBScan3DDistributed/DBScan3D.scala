@@ -32,20 +32,54 @@ extends Serializable with  Logging{
   def labeledPoints: RDD[DBScanLabeledPoint_3D] = {
     labeledPartitionedPoints.values // all labeled points in working space after implementing the DBScan
   }
-  def findAdjacencies(partition: Iterable[(Int, DBScanLabeledPoint_3D)]): Set[((Int, Int), (Int, Int))] = {
-    val zero = (Map[DBScanPoint_3D, ClusterID](), Set[(ClusterID, ClusterID)]())
+//  def findAdjacencies(partition: Iterable[(Int, DBScanLabeledPoint_3D)]): Set[((Int, Int), (Int, Int))] = {
+//    val zero = (Map[DBScanPoint_3D, ClusterID](), Set[(ClusterID, ClusterID)]())
+//
+//    val (seen, adjacencies) = partition.foldLeft(zero)({
+//      case ((seen, adajacencies), (partition, point)) => {
+//        // noise points are not relevant to any adajacencies
+//        if (point.flag == Flag.Noise) {
+//          (seen, adajacencies)
+//        } else {
+//          val clusterId = (partition, point.cluster)
+//
+//          seen.get(point) match {
+//            case None => (seen + (point -> clusterId), adajacencies)
+//            case Some(preClusterId) => (seen, adajacencies + ((preClusterId, clusterId)))
+//          }
+//        }
+//      }
+//    })
+//    adjacencies
+//  }
 
-    val (seen, adjacencies) = partition.foldLeft(zero)({
+  def findAdjacencies(partitions: Iterable[(Int, DBScanLabeledPoint_3D)]): Set[((Int, Int), (Int, Int))] = {
+
+    val zero = (Map[DBScanPoint_3D, ClusterID](), Set[(ClusterID, ClusterID)]())
+    val partitionsMap: Map[Int, DBScanLabeledPoint_3D] = partitions.toMap
+    val (seen, adjacencies) = partitions.foldLeft(zero)({
       case ((seen, adajacencies), (partition, point)) => {
         // noise points are not relevant to any adajacencies
         if (point.flag == Flag.Noise) {
           (seen, adajacencies)
-        } else {
+        } else if (point.flag == Flag.Core){
           val clusterId = (partition, point.cluster)
 
           seen.get(point) match {
             case None => (seen + (point -> clusterId), adajacencies)
             case Some(preClusterId) => (seen, adajacencies + ((preClusterId, clusterId)))
+          }
+        }else{
+          val clusterId = (partition, point.cluster)
+          seen.get(point) match {
+            case Some(preClusterId) =>{
+              if(partitionsMap(preClusterId._1).flag == Flag.Core){
+                (seen, adajacencies + ((preClusterId, clusterId)))
+              }else{
+                (seen + (point -> clusterId), adajacencies)
+              }
+            }
+            case None => (seen + (point -> clusterId), adajacencies)
           }
         }
       }
@@ -83,10 +117,10 @@ extends Serializable with  Logging{
   }
 
   private def train(data: RDD[Vector]):DBScan3D = {
-    val sampledata = data.sample(withReplacement = false, 0.3, seed = 9961)
-//    val sampledata: RDD[Vector] = Sample.sample(data, sampleRate = 0.1)
-
-    val minimumCubeWithCount: Set[(DBScanCube, Int)] = sampledata //data
+    val start1 = System.currentTimeMillis()
+    val sampledata = data.sample(withReplacement = false, 0.1, seed = 9961)
+    println("data",sampledata.count())
+    val minimumCubeWithCount: Set[(DBScanCube, Int)] = sampledata//data
       .map(x => {
         toMinimumBoundingCube(x) // give every point the minimum bounding rectangle
       })
@@ -97,7 +131,7 @@ extends Serializable with  Logging{
 
     val localPartitions: List[(DBScanCube, Int)]
       = EvenSplitPartition_3D.partition(minimumCubeWithCount,
-        maxPointsPerPartition,
+        sampledata.count()/maxPointsPerPartition,
         minimumRectangleSize,
         minimumHigh,distanceEps,timeEps)
 
@@ -118,6 +152,7 @@ extends Serializable with  Logging{
         foundPoints
       }
     }
+    val end1 = System.currentTimeMillis()
      //BaseLine method
 //    val duplicated: RDD[(Int, DBScanPoint_3D)] = for {
 //      point <- data.map(new DBScanPoint_3D(_))
@@ -132,14 +167,18 @@ extends Serializable with  Logging{
 
     val numberOfPartitions: Int = localPartitions.size
     println("perform local DBScan")
+    val start2 = System.currentTimeMillis()
     val clustered: RDD[(Int, DBScanLabeledPoint_3D)] = duplicated
       .groupByKey(numberOfPartitions) // param: numPartitions
       .flatMapValues((points: Iterable[DBScanPoint_3D]) => {
         println("About to begin the local DBScan")
         new LocalDBScan_3D(distanceEps, timeEps, minPoints).fit(points)
       }) // different partition has different clustering
+    val end2 = System.currentTimeMillis()
 
+//    println("clustered:",clustered.count())
     println("find all candidate points for merging clusters and group them => inner margin & outer margin")
+    val start3 = System.currentTimeMillis()
     val marginPoints: RDD[(Int, Iterable[(Int, DBScanLabeledPoint_3D)])] = clustered.flatMap({
       case (partition, point) => {
         margins.value
@@ -195,8 +234,18 @@ extends Serializable with  Logging{
 
     val clusterIds = data.context.broadcast(clusterIdToGlobalId)
 
+    val filteredClustered = clustered.mapPartitions { partition =>
+      partition.flatMap { case (partitionId, point) =>
+        val currentMargins = margins.value.filter { case (_, id) => id == partitionId }
+        currentMargins.flatMap { case ((inner, main, _), _) =>
+          if (main.contains(point)) Some((partitionId, point))
+          else None
+        }
+      }
+    }
+//    println("filteredClustered",filteredClustered.count())
     println("About to relabel inner points")
-    val labeledInner: RDD[(Int, DBScanLabeledPoint_3D)] = clustered.filter(isInnerPoint(_, margins.value))
+    val labeledInner: RDD[(Int, DBScanLabeledPoint_3D)] = filteredClustered.filter(isInnerPoint(_, margins.value))
       .map({
         case (partition, point) => {
           if (point.flag != Flag.Noise) {
@@ -205,37 +254,63 @@ extends Serializable with  Logging{
           (partition, point)
         }
       })
+//    println("inner points",labeledInner.count())
 
-
+    val totalPointsCount = marginPoints.flatMap(_._2).count()
+    println("Total number of points in marginPoints: " + totalPointsCount)
+//    val outertemp: RDD[(Int, DBScanLabeledPoint_3D)] = clustered.filter(!isInnerPoint(_, margins.value))
+//    val outertempArray: Array[(Int, DBScanLabeledPoint_3D)] = outertemp.collect()
+//    这个labeledOuter有问题，与marginPoints点数不一致，应该是进行了合并。但问题是同一个分区内相同的点不需要合并，不知道怎么改
     println("About to relabel outer points")
     val labeledOuter =
       marginPoints.flatMapValues(partition => {
         partition.foldLeft(Map[DBScanPoint_3D, DBScanLabeledPoint_3D]())({
           case (all, (partition, point)) =>
-
             if (point.flag != Flag.Noise) {
               point.cluster = clusterIds.value((partition, point.cluster))
             }
-
             all.get(point) match {
               case None => all + (point -> point)
               case Some(prev) => {
                 // override previous entry unless new entry is noise
-                if (point.flag != Flag.Noise) {
+                if ((point.flag==Flag.Core&&prev.flag==Flag.Border)||(point.flag==Flag.Border&&prev.flag==Flag.Noise)) {
                   prev.flag = point.flag
                   prev.cluster = point.cluster
                 }
-                all
+                else if(point.flag==prev.flag){}
+                else{
+                  point.flag = prev.flag
+                  point.cluster = prev.cluster
+                }
+                all+ (point -> point)
               }
             }
         }).values
       })
+
+    val end3 = System.currentTimeMillis()
+//    println("labeledOuter points",labeledOuter.count())
+//    val OuterPoints = filteredClustered.mapPartitions { partition =>
+//      partition.flatMap { case (partitionId, point) =>
+//        val currentMargins = margins.value.filter { case (_, id) => id == partitionId }
+//        currentMargins.flatMap { case ((inner, main, _), _) =>
+//          if (main.contains(point) && !inner.almostContains(point)) Some((partitionId, point))
+//          else None
+//        }
+//      }
+//    }
+//    println("outer points",OuterPoints.count())
 
     val finalPartitions = localCube.map {
       case ((_, p, _), index) => (index, p)
     }
 
     println("Done")
+    println("Total count of duplicated elements: " + duplicatedCount)
+    println("Partition Time Cost: ",end1-start1)
+    println("Local Time Cost: ",end2-start2)
+    println("Merge Time Cost: ",end3-start3)
+    println("----------------------------------------------------------------------")
     new DBScan3D(
       distanceEps,
       timeEps,

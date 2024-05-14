@@ -7,24 +7,24 @@ import org.apache.spark.mllib.linalg.{Vectors, Vector}
 object DBScanTest{
   def main(args: Array[String]): Unit = {
 
-//    val directoryPath = "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id"
+    val directoryPath = "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id"
 //    val fileList = Array("D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\1.txt",
 //      "D:\\START\\distribute-ST-cluster\\code\\DBScan-VeG\\SparkMaven\\src\\main\\resources\\taxi_log_2008_by_id\\2.txt"
 //    )
-//    val fileList = (100 to 110).map(i => s"$directoryPath\\$i.txt").toArray
-    val fileList = Array(args(0))
+    val fileList = (100 to 110).map(i => s"$directoryPath\\$i.txt").toArray
+//    val fileList = Array(args(0))
     val conf = new SparkConf()
-//    conf.setMaster("local[5]").setAppName("DBScan")
-    conf.setMaster("spark://startserver02:7077")
+    conf.setMaster("local[5]").setAppName("DBScan")
+//    conf.setMaster("spark://startserver02:7077")
     val sparkContext: SparkContext = new SparkContext(conf)
     val lineRDD: RDD[String] = sparkContext.textFile(fileList.mkString(","), 10)
 
     val VectorRDD: RDD[Vector] = lineRDD.map(x => {
         val strings: Array[String] = x.split(",")
-//      (strings(2).toDouble, strings(3).toDouble)
-        val spacestr=strings(4).replaceAll("POINT \\(([^\\s]+) ([^\\s]+)\\)", "$1,$2")
-        val spaceArray: Array[String]= spacestr.split(",")
-        (spaceArray(0).toDouble,spaceArray(1).toDouble)
+        (strings(2).toDouble, strings(3).toDouble)
+//        val spacestr=strings(4).replaceAll("POINT \\(([^\\s]+) ([^\\s]+)\\)", "$1,$2")
+//        val spaceArray: Array[String]= spacestr.split(",")
+//        (spaceArray(0).toDouble,spaceArray(1).toDouble)
     }).map((x: (Double, Double)) => {
       Vectors.dense(Array(x._1, x._2))
     })

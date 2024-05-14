@@ -4,12 +4,12 @@ import org.apache.spark.Scala.DBScan3DDistributed.DBScanCube
 import scala.collection.mutable
 
 object Greedy{
-  def getGreedyPartition(pointofCube:Set[(Int, DBScanCube, Int)], cellgraph:Graph, PointsPerPartition:Int): List[Set[DBScanCube]] = {
-    new Greedy(pointofCube,cellgraph,PointsPerPartition).KLresult()
+  def getGreedyPartition(pointofCube:Set[(Int, DBScanCube, Int)], cellgraph:Graph, PointsPerPartition:Int,kk:Int): List[Set[DBScanCube]] = {
+    new Greedy(pointofCube,cellgraph,PointsPerPartition,kk).KLresult()
   }
 }
 
-case class Greedy(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Graph, PointsPerPartition:Int) {
+case class Greedy(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Graph, PointsPerPartition:Int,kk:Int) {
 
   def getWeight(node1: Int, node2: Int): Double = {
     cellgraph.edges.getOrElse((node1, node2), 0.0)
@@ -72,7 +72,6 @@ case class Greedy(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Graph, Poin
     partitionstemp(cube_par(i)).remove(i)
     partitionstemp(j).add(i)
     val cost =  getCost(partitionstemp)     //计算移动后的全局权重
-//    println(cost)
     if(cost>maxcost) true
     else false
   }
@@ -81,7 +80,7 @@ case class Greedy(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Graph, Poin
     // 初始化分区
     val partitions = mutable.Map[Int, mutable.Set[Int]]()
     val cube_par = mutable.Map[Int, Int]()  //存每个节点所属的分区
-    val k = 12
+    val k = kk
     for (i <- 0 until k) {
       partitions(i) = mutable.Set[Int]()
     }
@@ -92,6 +91,17 @@ case class Greedy(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Graph, Poin
       cube_par(i) = partitionIndex % k
       partitionIndex += 1
     }
+    // 均衡初始化
+//    val sortedCubes = pointofCube.toSeq.sortBy(-_._3)
+//    val avgPointsPerPartition = sortedCubes.map(_._3).sum / k
+//
+//    var pointsAdded = 0
+//    sortedCubes.foreach { case (cubeId, _, numPoints) =>
+//      val partitionIndex = pointsAdded / avgPointsPerPartition
+//      partitions(partitionIndex) += cubeId
+//      cube_par(cubeId) = partitionIndex
+//      pointsAdded += numPoints
+//    }
 
     println("\nBefore Greedy")
     println(getCost(partitions))
@@ -125,7 +135,7 @@ case class Greedy(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Graph, Poin
             cubelist += cube
         }
       }
-      cubepartition = cubelist :: cubepartition
+      if(sum!=0) cubepartition = cubelist :: cubepartition
       print(sum,"")
       if(sum>summax) summax = sum
       if(sum<summin) summin = sum
