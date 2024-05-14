@@ -272,9 +272,6 @@ class DBScan3D_cubesplit private(val distanceEps: Double,
 //    println("sum of inner outer points------------------------------------",labeledOuter.count())
     println("Done")
     println("Total count of duplicated elements: " + duplicatedCount)
-    println("Partition Time Cost: ",end1-start1)
-    println("Local Time Cost: ",end2-start2)
-    println("Merge Time Cost: ",end3-start3)
     println("----------------------------------------------------------------------")
     new DBScan3D_cubesplit(
       distanceEps,

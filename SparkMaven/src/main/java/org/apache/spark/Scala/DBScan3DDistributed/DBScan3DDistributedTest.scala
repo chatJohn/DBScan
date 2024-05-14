@@ -75,9 +75,9 @@ object DBScan3DDistributedTest {
 
     val startTime = System.currentTimeMillis()
 
-    val DBScanRes: DBScan3D = DBScan3D.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition)
-//    val DBScanRes: DBScan3D_cubesplit = DBScan3D_cubesplit.train(VectorRDD, distanceEps,
-//      timeEps, minPoints, maxPointsPerPartition, x_bounding, y_bounding, t_bounding)
+//    val DBScanRes: DBScan3D = DBScan3D.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition)
+    val DBScanRes: DBScan3D_cubesplit = DBScan3D_cubesplit.train(VectorRDD, distanceEps,
+      timeEps, minPoints, maxPointsPerPartition, x_bounding, y_bounding, t_bounding)
 
     val endTime = System.currentTimeMillis()
     val total = endTime - startTime
