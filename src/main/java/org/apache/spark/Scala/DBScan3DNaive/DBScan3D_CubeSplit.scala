@@ -16,11 +16,12 @@ object DBScan3D_CubeSplit{
             timeEps: Double,
             minPoints: Int,
             maxPointsPerPartitions: Int,
+            load_balance_alpha: Double,
             x_bounding: Double,
             y_bounding: Double,
             t_bounding: Double
            ): DBScan3D_CubeSplit = {
-    new DBScan3D_CubeSplit(distanceEps, timeEps, minPoints, maxPointsPerPartitions,x_bounding,y_bounding,t_bounding,null, null).train(data)
+    new DBScan3D_CubeSplit(distanceEps, timeEps, minPoints, maxPointsPerPartitions, load_balance_alpha, x_bounding,y_bounding,t_bounding,null, null).train(data)
   }
 }
 
@@ -28,6 +29,7 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
                                  val timeEps: Double,
                                  val minPoints: Int,
                                  val maxPointsPerPartition: Int,
+                                 val load_balance_alpha: Double,
                                  val x_bounding: Double,
                                  val y_bounding: Double,
                                  val t_bounding: Double,
@@ -103,7 +105,8 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
       x_bounding,
       y_bounding,
       t_bounding,
-      maxPointsPerPartition
+      maxPointsPerPartition,
+      load_balance_alpha
     )
 
     var localCubeTemp: List[Set[(DBScanCube, DBScanCube, DBScanCube)]] = List()
@@ -264,6 +267,7 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
       timeEps,
       minPoints,
       maxPointsPerPartition,
+      load_balance_alpha,
       x_bounding,
       y_bounding,
       t_bounding,

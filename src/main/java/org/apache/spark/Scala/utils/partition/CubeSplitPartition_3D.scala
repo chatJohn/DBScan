@@ -11,13 +11,13 @@ import scala.util.control.Breaks
 
 object CubeSplitPartition_3D{
   def getPartition(points:Array[DBScanPoint_3D], x_bounding: Double,y_bounding:
-  Double,t_bounding: Double,maxPointsPerPartition:Int): List[Set[DBScanCube]] = {
-    new CubeSplitPartition_3D(points,x_bounding,y_bounding,t_bounding,maxPointsPerPartition).getSplits()
+  Double,t_bounding: Double,maxPointsPerPartition:Int, load_balance_alpha: Double): List[Set[DBScanCube]] = {
+    new CubeSplitPartition_3D(points,x_bounding,y_bounding,t_bounding,maxPointsPerPartition, load_balance_alpha).getSplits()
   }
 }
 
 
-case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Double, y_bounding: Double, t_bounding: Double, maxPointsPerPartition:Int) {
+case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Double, y_bounding: Double, t_bounding: Double, maxPointsPerPartition:Int, load_balance_alpha: Double) {
 
   def getSplits(): List[Set[DBScanCube]] = {
     val pointOfCube: Set[(Int, DBScanCube, Int)] = getCube(points,x_bounding,y_bounding,t_bounding)
@@ -25,7 +25,7 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
     val cellGraph: Graph = getCellGraph(pointOfCube,x_bounding,y_bounding,t_bounding)
     println("cube graph vertices",cellGraph.vertices.size,"edges",cellGraph.edges.size)
     println("About to start partitioning...")
-    val partitions = getPartition(pointOfCube,cellGraph,maxPointsPerPartition)
+    val partitions = getPartition(points.size, pointOfCube,cellGraph,maxPointsPerPartition, load_balance_alpha)
     // Greedy method
 //    val temp = points.size / maxPointsPerPartition
 //    val partitions = getGreedyPartition(pointOfCube, cellGraph, temp,  maxPointsPerPartition)

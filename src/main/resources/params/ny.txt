@@ -1,0 +1,10 @@
+"F:\IntelliJ\DBScan\src\main\resources\newyork"
+"F:\IntelliJ\DBScan\resultTemp"
+0.012
+1000
+40
+20
+0.048
+0.048
+4000
+spark-submit --class org.apache.spark.Scala.DBScan3DNaive.DBScan3DTest /home/user1/stdbscan/jar/test_jar/NewYork_Cube.jar /user/user1/misa/data/newyork/newyork_1m /home/user1/stdbscan/test_result/newyork_1m 0.012 1000 40 20 0.048 0.048 4000

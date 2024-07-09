@@ -4,12 +4,12 @@ import org.apache.spark.Scala.DBScan3DNaive.DBScanCube
 import scala.collection.mutable
 
 object Kernighan_Lin{
-  def getPartition(pointofCube:Set[(Int, DBScanCube, Int)], cellgraph:Graph, PointsPerPartition:Int): List[Set[DBScanCube]] = {
-    new Kernighan_Lin(pointofCube,cellgraph,PointsPerPartition).KLresult()
+  def getPartition(totalPoints: Int, pointofCube:Set[(Int, DBScanCube, Int)], cellgraph:Graph, PointsPerPartition:Int, load_balance_alpha: Double): List[Set[DBScanCube]] = {
+    new Kernighan_Lin(totalPoints, pointofCube,cellgraph,PointsPerPartition, load_balance_alpha).KLresult()
   }
 }
 
-case class Kernighan_Lin(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Graph, PointsPerPartition:Int) {
+case class Kernighan_Lin(totalPoints: Int, pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Graph, PointsPerPartition:Int, load_balance_alpha: Double) {
 
   def getWeight(node1: Int, node2: Int): Double = {
     cellgraph.edges.getOrElse((node1, node2), 0.0)
@@ -221,8 +221,9 @@ case class Kernighan_Lin(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Grap
     for ((index , nodes) <- partitions){
       partitions_points(index) = (nodes, points_in_partition(nodes))
     }
-    val maxPointsPerPartition = (PointsPerPartition * 1.2).toInt
-    val minPointsPerPartition = (PointsPerPartition * 0.8).toInt
+    val basePointsPerPartition = totalPoints / k
+    val maxPointsPerPartition = (basePointsPerPartition * (1.0D + load_balance_alpha)).toInt
+    val minPointsPerPartition = (basePointsPerPartition * (1.0D - load_balance_alpha)).toInt
     println("maxPointsPerPartition",maxPointsPerPartition,"minPointsPerPartition",minPointsPerPartition)
     val new_partition = split_merge(partitions_points,maxPointsPerPartition,minPointsPerPartition)
     print("\nAfter split_merge")
@@ -235,7 +236,7 @@ case class Kernighan_Lin(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Grap
     var summin:Int = Int.MaxValue
     for (i <- 0 until new_partition.size) {  //new_partition
       for (node <- new_partition(i)) {  //new_partition
-        pointofCube.find { case (idx, cube, count) => idx == node } match {
+        pointofCube.find { case (idx, _, _) => idx == node } match {
           case Some((_, cube, count)) =>
             sum += count
             cubelist += cube

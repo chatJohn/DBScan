@@ -18,8 +18,8 @@ object DBScan3DTest {
 //      .set("spark.driver.maxResultSize", "10g")
 //      .set("spark.driver.memory", "6g")
       .setAppName("DBscan_3D")
-      //.setMaster("local[*]") // 在本地模拟运行
-      .setMaster("spark://10.242.6.19:7077") // 在分布式集群中运行
+      .setMaster("local[*]") // 在本地模拟运行
+      //.setMaster("spark://10.242.6.19:7077") // 在分布式集群中运行
     val sparkContext: SparkContext = new SparkContext(conf)
 
     val fileProcess: FileProcess = FileProcess()
@@ -53,14 +53,15 @@ object DBScan3DTest {
     val timeEps: Double = args(3).toDouble
     val minPoints: Int = args(4).toInt
     val maxPointsPerPartition: Int = args(5).toInt
+    // new param: load_balance_alpha
+    val load_balance_alpha = args(6).toDouble
     // new partition method params
-    val x_boundind: Double = args(6).toDouble
-    val y_bounding: Double = args(7).toDouble
-    val t_bounding: Double = args(8).toDouble
-
+    val x_boundind: Double = args(7).toDouble
+    val y_bounding: Double = args(8).toDouble
+    val t_bounding: Double = args(9).toDouble
     val startTime = System.currentTimeMillis()
     //val DBScanRes: DBScan3D = DBScan3D.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition)
-    val DBScanRes = DBScan3D_CubeSplit.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition, x_boundind, y_bounding, t_bounding)
+    val DBScanRes = DBScan3D_CubeSplit.train(VectorRDD, distanceEps, timeEps, minPoints, maxPointsPerPartition, load_balance_alpha, x_boundind, y_bounding, t_bounding)
 
     val endTime = System.currentTimeMillis()
     val total = endTime - startTime
