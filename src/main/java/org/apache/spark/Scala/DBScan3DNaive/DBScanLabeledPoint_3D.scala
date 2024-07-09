@@ -12,6 +12,7 @@ object DBScanLabeledPoint_3D {
 
 
 class DBScanLabeledPoint_3D(vector: Vector) extends DBScanPoint_3D(vector){
+  require(vector != null, "Vector should not be null")
   def this(point: DBScanPoint_3D) = this(point.vector)
 
   var flag = DBScanLabeledPoint_3D.Flag.NotFlagged

@@ -6,7 +6,7 @@ import org.apache.spark.Scala.utils.sample.Sample
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
-import org.apache.spark.mllib.linalg.Vector
+import org.apache.spark.mllib.linalg.{Vector, Vectors}
 
 
 object DBScan3D{
@@ -38,11 +38,11 @@ extends Serializable with  Logging{
 
     val zero = (Map[DBScanPoint_3D, ClusterID](), Set[(ClusterID, ClusterID)]())
     val partitionsMap: Map[Int, DBScanLabeledPoint_3D] = partitions.toMap
-    val (seen, adjacencies) = partitions.foldLeft(zero)({
+    val (_, adjacencies) = partitions.foldLeft(zero)({
       case ((seen, adajacencies), (partition, point)) => {
         // noise points are not relevant to any adajacencies
         if (point.flag == Flag.Noise) {
-          (seen, adajacencies)
+          (seen , adajacencies)
         } else if (point.flag == Flag.Core){
           val clusterId = (partition, point.cluster)
 
@@ -98,21 +98,24 @@ extends Serializable with  Logging{
   }
   private def train(data: RDD[Vector]): DBScan3D = {
     println("About to train")
-    val samplePoints = data.sample(false, 0.1, 9961)
+    val samplePoints: Array[DBScanPoint_3D] = Sample.strict_sample(data, count = 20000)
+    //val samplePoints: RDD[Vector] = data.sample(withReplacement = false, fraction = 0.1, seed = 9961)
     val minimumCubeWithCount: Set[(DBScanCube, Int)] = samplePoints
+      .map(x => Vectors.dense(Array(x.distanceX, x.distanceY, x.timeDimension)))
       .map(x => {
         toMinimumBoundingCube(x) // give every point the minimum bounding rectangle
       })
       .map(x => (x, 1))
-      .aggregateByKey(0)(_ + _, _ + _) // 先同一个RDD中相同Rectangle数据点相加，然后所有RDD中相同的Rectangle的数据点相加
-      .collect()
+      .groupBy(identity)
+      .mapValues(_.size)
+      .map(x => (x._1._1, x._2))
       .toSet // 构建全局数据点的立方体
 
     val localPartitions: List[(DBScanCube, Int)]
       = EvenSplitPartition_3D.partition(minimumCubeWithCount,
-        maxPointsPerPartition,
-        minimumRectangleSize,
-        minimumHigh)
+      samplePoints.size/maxPointsPerPartition,
+      minimumRectangleSize,
+      minimumHigh,distanceEps,timeEps)
     println(s"local partition size: ${localPartitions.size}")
 
     val localCube: List[((DBScanCube, DBScanCube, DBScanCube), Int)] = localPartitions.map({
@@ -120,12 +123,24 @@ extends Serializable with  Logging{
     }).zipWithIndex
     val margins: Broadcast[List[((DBScanCube, DBScanCube, DBScanCube), Int)]] = data.context.broadcast(localCube)
 
+    val duplicated: RDD[(Int, DBScanPoint_3D)] = data.flatMap { point =>
+      val foundPoints = margins.value.flatMap { case ((inner, main, outer), id) =>
+        if (outer.contains(DBScanPoint_3D(point))) Some((id, DBScanPoint_3D(point)))
+        else None
+      }
+      if (foundPoints.isEmpty) {
+        margins.value.map { case (_, id) => (id, DBScanPoint_3D(point)) }
+      } else {
+        foundPoints
+      }
+    }
+    val duplicatedCount: Long = duplicated.count()
     // BaseLine method
-    val duplicated: RDD[(Int, DBScanPoint_3D)] = for {
-      point <- data.map(new DBScanPoint_3D(_))
-      ((inner, main, outer), id) <- margins.value
-      if outer.contains(point)
-    } yield (id, point) // the point in the partition with id
+//    val duplicated: RDD[(Int, DBScanPoint_3D)] = for {
+//      point <- data.map(new DBScanPoint_3D(_))
+//      ((inner, main, outer), id) <- margins.value
+//      if outer.contains(point)
+//    } yield (id, point) // the point in the partition with id
 
 
     val numberOfPartitions: Int = localPartitions.size
@@ -219,11 +234,16 @@ extends Serializable with  Logging{
               case None => all + (point -> point)
               case Some(prev) => {
                 // override previous entry unless new entry is noise
-                if (point.flag != Flag.Noise) {
+                if ((point.flag==Flag.Core&&prev.flag==Flag.Border)||(point.flag==Flag.Border&&prev.flag==Flag.Noise)) {
                   prev.flag = point.flag
                   prev.cluster = point.cluster
                 }
-                all
+                else if(point.flag==prev.flag){}
+                else{
+                  point.flag = prev.flag
+                  point.cluster = prev.cluster
+                }
+                all+ (point -> point)
               }
             }
         }).values
@@ -234,6 +254,9 @@ extends Serializable with  Logging{
     }
 
     println("Done")
+    println("-----------------------------------------------------------------")
+    println("Total count of duplicated elements: " + duplicatedCount)
+    println("-----------------------------------------------------------------")
     new DBScan3D(
       distanceEps,
       timeEps,

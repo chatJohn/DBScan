@@ -3,7 +3,9 @@ package org.apache.spark.Scala.utils.partition
 import org.apache.spark.Scala.DBScan3DNaive.{DBScanCube, DBScanPoint_3D}
 import org.apache.spark.Scala.utils.partition.Cell_3D.getCube
 import org.apache.spark.Scala.utils.partition.CellGraph_3D.getCellGraph
+import org.apache.spark.Scala.utils.partition.Greedy.getGreedyPartition
 import org.apache.spark.Scala.utils.partition.Kernighan_Lin.getPartition
+
 import scala.collection.mutable
 import scala.util.control.Breaks
 
@@ -24,10 +26,11 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
     println("cube graph vertices",cellGraph.vertices.size,"edges",cellGraph.edges.size)
     println("About to start partitioning...")
     val partitions = getPartition(pointOfCube,cellGraph,maxPointsPerPartition)
-
+    // Greedy method
+//    val temp = points.size / maxPointsPerPartition
+//    val partitions = getGreedyPartition(pointOfCube, cellGraph, temp,  maxPointsPerPartition)
     println("the Partitions are below:")
     partitions.foreach(println)
-
     println("Partitioning Done")
     println("partitions size",partitions.size)
     println("Partitioning Done")

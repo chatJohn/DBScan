@@ -168,7 +168,7 @@ class DBScan private(val eps: Double,
     localPartitions.foreach(p => println(p.toString()))
 
     // grow partitions to include eps
-    val localMargins = localPartitions.map({
+    val localMargins: List[((DBScanRectangle, DBScanRectangle, DBScanRectangle), Int)] = localPartitions.map({
       case (p, _) => (p.shrink(eps), p, p.shrink(-eps))
     }).zipWithIndex
 
@@ -299,7 +299,7 @@ class DBScan private(val eps: Double,
 
         }).values
       })
-    val finalPartitions = localMargins.map {
+    val finalPartitions: List[(Int, DBScanRectangle)] = localMargins.map {
       case ((_, p, _), index) => (index, p)
     }
 

@@ -72,7 +72,7 @@ case class FileProcess() {
       .replace("Some((", "")
       .replace(")))", "")
     val spaceArr = spaceStr.split(" ")
-    println("data process Done")
+
     (spaceArr(0).toDouble, spaceArr(1).toDouble, t)
   }
 }

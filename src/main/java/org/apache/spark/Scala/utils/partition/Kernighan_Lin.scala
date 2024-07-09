@@ -49,12 +49,14 @@ case class Kernighan_Lin(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Grap
     var a = 0
     var b = 0
     for (i <- A; j <- B) {
-      val cost = D(i) + D(j) - 2 * getWeight(i, j)
-      if (cost > maxCost) {
-        maxCost = cost
-        a = i
-        b = j
-      }
+
+        val cost = D(i) + D(j) - 2 * getWeight(i, j)
+        if (cost > maxCost) {
+          maxCost = cost
+          a = i
+          b = j
+        }
+
     }
     (a, b, maxCost)
   }
@@ -197,7 +199,6 @@ case class Kernighan_Lin(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Grap
     for (i <- 0 until k) {
       partitions(i) = mutable.Set[Int]()
     }
-    println("In partition 1....")
     // 随机初始化
     var partitionIndex = 0
     for (i <- 1 to getSize) {
@@ -215,15 +216,25 @@ case class Kernighan_Lin(pointofCube:Set[(Int, DBScanCube, Int)],cellgraph: Grap
       }
     }
     println("In partition 2....")
-
+    // 加上分区点数限制，对点数大于上限的分区进行拆分，以及对点数小于下限的分区进行合并
+    val partitions_points = mutable.Map[Int, (mutable.Set[Int],Int)]()
+    for ((index , nodes) <- partitions){
+      partitions_points(index) = (nodes, points_in_partition(nodes))
+    }
+    val maxPointsPerPartition = (PointsPerPartition * 1.2).toInt
+    val minPointsPerPartition = (PointsPerPartition * 0.8).toInt
+    println("maxPointsPerPartition",maxPointsPerPartition,"minPointsPerPartition",minPointsPerPartition)
+    val new_partition = split_merge(partitions_points,maxPointsPerPartition,minPointsPerPartition)
+    print("\nAfter split_merge")
+    print_partion_weight(new_partition)
     // 返回最终分区结果
     var cubepartition: List[Set[DBScanCube]] = List()
     var cubelist:Set[DBScanCube]=Set()
     var sum = 0
     var summax:Int = 0
     var summin:Int = Int.MaxValue
-    for (i <- 0 until partitions.size) {  //new_partition
-      for (node <- partitions(i)) {  //new_partition
+    for (i <- 0 until new_partition.size) {  //new_partition
+      for (node <- new_partition(i)) {  //new_partition
         pointofCube.find { case (idx, cube, count) => idx == node } match {
           case Some((_, cube, count)) =>
             sum += count

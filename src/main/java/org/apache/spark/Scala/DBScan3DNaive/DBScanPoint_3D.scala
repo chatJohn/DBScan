@@ -5,19 +5,32 @@ object DBScanPoint_3D{
   val EARTH_R = 6378.137
 }
 case class DBScanPoint_3D(vector: Vector) {
-  def distanceX: Double = vector(0)
-  def distanceY: Double = vector(1)
-  def timeDimension: Double = vector(2)
+  require(vector != null && vector.size == 3, "Vector cannot be null")
+  def distanceX: Double = {
+
+    vector(0)
+  }
+  def distanceY: Double = {
+
+    vector(1)
+  }
+  def timeDimension: Double = {
+
+    vector(2)
+  }
   def distanceSquared(other: DBScanPoint_3D): Double = {
+    require(other != null, "Other DBScanPoint_3D cannot be null")
+    require(other.vector != null, "Other DBScanPoint_3D.vector cannot be null")
     // 欧几里得距离
     val dx = other.distanceX - distanceX
     val dy = other.distanceY - distanceY
-
     dx * dx + dy * dy
   }
-  def timeAbs(other: DBScanPoint_3D): Double = {
+  def timeDistance(other: DBScanPoint_3D): Double = {
+    require(other != null, "Other DBScanPoint_3D cannot be null")
+    require(other.vector != null, "Other DBScanPoint_3D's vector cannot be null")
     // 时间距离
     val tx = other.timeDimension - timeDimension
-    math.abs(tx)
+    tx
   }
 }

@@ -23,7 +23,7 @@ case class Cell_3D(points:Array[DBScanPoint_3D], x_bounding: Double, y_bounding:
   def pointsIn(cube: DBScanCube): Int = {
     var count = 0
     for (point <- points){
-      if(cube.contains(point)){
+      if(point != null && cube.contains(point)){
         count = count + 1
       }
     }

@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.chatting.DBScan</groupId>
-    <artifactId>dbscan-on-spark_2.10</artifactId>
+    <artifactId>NewYork_Cube</artifactId>
     <version>0.2.0-SNAPSHOT</version>
 
 <!--    <name>Distributed DBSCAN on Apache Spark</name>-->
@@ -148,6 +148,7 @@
                 </executions>
             </plugin>
         </plugins>
+        <finalName>NewYork_Cube</finalName>
     </build>
 
 

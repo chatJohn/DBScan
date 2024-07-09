@@ -8,6 +8,8 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.Scala.utils.partition.{CubeSplitPartition_3D, EvenSplitPartition_3D}
 import org.apache.spark.Scala.utils.sample.Sample
 
+import scala.util.control.Breaks.break
+
 object DBScan3D_CubeSplit{
   def train(data: RDD[Vector],
             distanceEps: Double,
@@ -31,7 +33,7 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
                                  val t_bounding: Double,
                                  @transient val partitions: List[(Int, DBScanCube)],
                                  @transient private val labeledPartitionedPoints: RDD[(Int, DBScanLabeledPoint_3D)])
-  extends Serializable with  Logging{
+  extends Serializable with Logging {
   type Margin = Set[(DBScanCube, DBScanCube, DBScanCube)]
   type ClusterID = (Int, Int)
   def minimumRectangleSize: Double = 2 * distanceEps
@@ -43,31 +45,37 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
 
     val zero = (Map[DBScanPoint_3D, ClusterID](), Set[(ClusterID, ClusterID)]())
     val partitionsMap: Map[Int, DBScanLabeledPoint_3D] = partitions.toMap
-    val (seen, adjacencies) = partitions.foldLeft(zero)({
+    val (_, adjacencies) = partitions.foldLeft(zero)({
       case ((seen, adajacencies), (partition, point)) => {
         // noise points are not relevant to any adajacencies
-        if (point.flag == Flag.Noise) {
-          (seen, adajacencies)
-        } else if (point.flag == Flag.Core){
-          val clusterId = (partition, point.cluster)
-
-          seen.get(point) match {
-            case None => (seen + (point -> clusterId), adajacencies)
-            case Some(preClusterId) => (seen, adajacencies + ((preClusterId, clusterId)))
-          }
-        }else{
-          val clusterId = (partition, point.cluster)
-          seen.get(point) match {
-            case Some(preClusterId) =>{
-              if(partitionsMap(preClusterId._1).flag == Flag.Core){
+        if(point != null){
+          if (point.flag == Flag.Noise) {
+            (seen, adajacencies)
+          } else if (point.flag == Flag.Core){
+            val clusterId = (partition, point.cluster)
+            seen.get(point) match {
+              case None => (seen + (point -> clusterId), adajacencies)
+              case Some(preClusterId) => {
                 (seen, adajacencies + ((preClusterId, clusterId)))
-              }else{
-                (seen, adajacencies)
               }
             }
-            case None => (seen, adajacencies)
+          }else{
+            val clusterId = (partition, point.cluster)
+            seen.get(point) match {
+              case Some(preClusterId) =>{
+                if(partitionsMap(preClusterId._1).flag == Flag.Core){
+                  (seen, adajacencies + ((preClusterId, clusterId)))
+                }else{
+                  (seen, adajacencies)
+                }
+              }
+              case None => (seen, adajacencies)
+            }
           }
+        }else{
+          (seen, adajacencies)
         }
+
       }
     })
     adjacencies
@@ -86,12 +94,8 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
 
   private def train(data: RDD[Vector]): DBScan3D_CubeSplit = {
     println("The Begin of Program: the count of ds is: " + data.count())
-    val points: Array[DBScanPoint_3D] = data
-      .map(x => {
-        DBScanPoint_3D(x) // give every point the minimum bounding rectangle
-      })
-      .collect()
-    val samplePoints: Array[DBScanPoint_3D] = Sample.sample(data, sampleRate = 0.1)
+    val samplePoints: Array[DBScanPoint_3D] = Sample.strict_sample(data, count = 20000)
+//  val samplePoints: RDD[DBScanPoint_3D] = Sample.sample(data, sampleRate = 0.0001)
     println("Sample Done Size: " + samplePoints.size)
     // New method
     val localPartitions: List[Set[DBScanCube]]
@@ -102,24 +106,29 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
       maxPointsPerPartition
     )
 
-
     var localCubeTemp: List[Set[(DBScanCube, DBScanCube, DBScanCube)]] = List()
     for(cubeSet <- localPartitions){
-      var cubeShrink : Set[(DBScanCube, DBScanCube, DBScanCube)]= Set()
-      for(p <- cubeSet){
-        cubeShrink += ((p.shrink(distanceEps,timeEps), p, p.shrink(-distanceEps,-timeEps)))
+      if(cubeSet != null){
+        var cubeShrink : Set[(DBScanCube, DBScanCube, DBScanCube)]= Set()
+        for(p <- cubeSet){
+          if(p != null){
+            cubeShrink += ((p.shrink(distanceEps,timeEps), p, p.shrink(-distanceEps,-timeEps)))
+          }
+        }
+        localCubeTemp = cubeShrink :: localCubeTemp
       }
-      localCubeTemp = cubeShrink :: localCubeTemp
+
     }
 
     val localCube: List[(Set[(DBScanCube, DBScanCube, DBScanCube)], Int)] = localCubeTemp.zipWithIndex
+
     val margins: Broadcast[List[(Set[(DBScanCube, DBScanCube, DBScanCube)], Int)]] = data.context.broadcast(localCube)
 
     val duplicated: RDD[(Int, DBScanPoint_3D)] = data.flatMap { point =>
       val foundPoints = margins.value.flatMap { case (cubeset, id) =>
-        cubeset.flatMap { case (inner, main, outer) =>
+        cubeset.flatMap { case (_, _, outer) =>
           if (outer.contains(DBScanPoint_3D(point))) Some((id, DBScanPoint_3D(point)))
-          else None
+          else None // not any margins include this point
         }
       }
       if (foundPoints.isEmpty) {
@@ -137,7 +146,7 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
     println("perform local DBScan")
     val clustered: RDD[(Int, DBScanLabeledPoint_3D)] = duplicated
       .groupByKey(numberOfPartitions) // param: numPartitions, parallel number
-      .flatMapValues((points: Iterable[DBScanPoint_3D]) => {
+      .filter(x => x._2 != null).flatMapValues((points: Iterable[DBScanPoint_3D]) => {
         println("About to begin the local DBScan")
         new LocalDBScan_3D(distanceEps, timeEps, minPoints).fit(points)
       }) // different partition has different clustering
@@ -148,7 +157,7 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
       case (partition, point) => {
         margins.value
           .filter({
-            case (cubeSet, id) => {
+            case (cubeSet, _) => {
               cubeSet.exists({
                 case (inner, main, _) => main.contains(point) && !inner.almostContains(point)
               })
@@ -210,7 +219,7 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
 
 
     println("About to relabel outer points")
-    val labeledOuter =
+    val labeledOuter = {
       marginPoints.flatMapValues(partition => {
         partition.foldLeft(Map[DBScanPoint_3D, DBScanLabeledPoint_3D]())({
           case (all, (partition, point)) =>
@@ -238,7 +247,18 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
         }).values
       })
 
+    }
+
+    val finalPartition: List[(Int, DBScanCube)] = localCube.flatMap({
+      case (set, index) => set.map{
+        case (_, c, _) => (index, c)
+      }
+    })
+
     println("Done")
+    println("-----------------------------------------------------------------")
+    println("Total count of duplicated elements: " + duplicatedCount)
+    println("-----------------------------------------------------------------")
     new DBScan3D_CubeSplit(
       distanceEps,
       timeEps,
@@ -247,7 +267,7 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
       x_bounding,
       y_bounding,
       t_bounding,
-      null,
+      finalPartition,
       labeledInner.union(labeledOuter))
   }
 }

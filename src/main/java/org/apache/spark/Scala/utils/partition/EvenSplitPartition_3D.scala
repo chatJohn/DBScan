@@ -8,13 +8,15 @@ object EvenSplitPartition_3D {
   def partition(toSplit: Set[(DBScanCube, Int)],
                 maxPointPerPartiton: Long,
                 minimumRectangleSize: Double,
-                minimumHigh: Double): List[(DBScanCube, Int)] = {
-    new EvenSplitPartition_3D(maxPointPerPartiton, minimumRectangleSize, minimumHigh).findPartitions(toSplit)
+                minimumHigh: Double,
+                distanceEps:Double,
+                timeEps:Double): List[(DBScanCube, Int)] = {
+    new EvenSplitPartition_3D(maxPointPerPartiton, minimumRectangleSize, minimumHigh,distanceEps,timeEps).findPartitions(toSplit)
   }
 }
 
 
-class EvenSplitPartition_3D(maxPointsPerPartition: Long, minimumRectangleSize: Double, minimumHigh: Double) extends Logging{
+class EvenSplitPartition_3D(maxPointsPerPartition: Long, minimumRectangleSize: Double, minimumHigh: Double,distanceEps:Double,timeEps:Double) extends Logging{
   type CubeWithCount = (DBScanCube, Int)
 
 
@@ -101,11 +103,11 @@ class EvenSplitPartition_3D(maxPointsPerPartition: Long, minimumRectangleSize: D
 
   /**
    * find the smallest cost split
-   * @param cube
-   * @param cost
-   * @return
+//   * @param cube
+//   * @param cost
+//   * @return
    */
-  def split(cube: DBScanCube, cost: DBScanCube => Int): (DBScanCube, DBScanCube) = {
+  def split(cube: DBScanCube, cost: (DBScanCube) => Int): (DBScanCube, DBScanCube) = {
     val smallestSplit = findPossibleSplit(cube).reduceLeft({
       (smallest, current) => {
         if (cost(smallest) <= cost(current)) {
@@ -118,20 +120,61 @@ class EvenSplitPartition_3D(maxPointsPerPartition: Long, minimumRectangleSize: D
     (smallestSplit, complement(smallestSplit, cube))
   }
 
+
   @tailrec
   private def partition(remaining: List[CubeWithCount], partitioned: List[CubeWithCount],
                         pointsIn: DBScanCube => Int): List[CubeWithCount] = {
     remaining match {
-      case (cube, count) :: rest =>
+      case (cube, count)::rest =>
+        println("cube: " + cube)
+        println("count: " + count)
+        println("remain: " + rest)
         if(count > maxPointsPerPartition){
           if(canBeSplit(cube)){
             println(s"About to split $cube")
-            def cost: DBScanCube => Int = (rec: DBScanCube) => ((pointsIn(cube) / 2) - pointsIn(rec)).abs
-            val (split1, split2) = split(cube, cost)
+            //ESP
+            def cost1: DBScanCube => Int = (rec: DBScanCube) => ((pointsIn(cube) / 2) - pointsIn(rec)).abs
+            //RBP
+            def cost2(rec: DBScanCube):Int={
+              val points1 = pointsIn(rec)
+              val points2 = pointsIn(rec.shrink(-distanceEps,-timeEps))
+              //              println("points1,points2",points1,points2)
+              val rec2: DBScanCube = complement(rec, cube)
+              val points3 = pointsIn(rec2)
+              val points4 = pointsIn(rec2.shrink(-distanceEps,-timeEps))
+              //              println("points3,points4",points3,points4)
+              math.abs(points1 - points2) + math.abs(points3 - points4)
+            }
+            //ESP+RBP
+            def cost3(rec: DBScanCube):Double={
+              val a = 0.8
+              val b = 1-a
+              var ESPcost = 0
+              if(pointsIn(cube)/2!=0){
+                ESPcost = ESPcost + ((pointsIn(cube)/2) - pointsIn(rec)).abs/(pointsIn(cube)/2)
+              }
+              val points1 = pointsIn(rec)
+              val points2 = pointsIn(rec.shrink(distanceEps,timeEps))
+              //              println("points1,points2",points1,points2)
+              val rec2: DBScanCube = complement(rec, cube)
+              val points3 = pointsIn(rec2)
+              val points4 = pointsIn(rec2.shrink(distanceEps,timeEps))
+              //              println("points3,points4",points3,points4)
+              var RBPcost = 0
+              if(points1!=0){
+                RBPcost = RBPcost + (points1 - points2)/points1
+              }
+              if(points3!=0){
+                RBPcost = RBPcost + (points3 - points4)/points3
+              }
+              a * ESPcost + b * RBPcost
+            }
+            val (split1, split2) = split(cube, cost1)
             println(s"Find the splits: $split1, $split2")
-            val s1: (DBScanCube, Int) = (split1, pointsIn(split1))
-            val s2: (DBScanCube, Int) = (split2, pointsIn(split2))
-            partition(s1 :: s2 :: rest, partitioned, pointsIn)
+            val s1 = (split1, pointsIn(split1))
+            val s2 = (split2, pointsIn(split2))
+            partition(rest, (cube, count):: partitioned, pointsIn)
+
           }else{
             println(s"Can't split: ($cube -> $count)," +
               s" maxPointsSize: $maxPointsPerPartition")
@@ -147,17 +190,23 @@ class EvenSplitPartition_3D(maxPointsPerPartition: Long, minimumRectangleSize: D
   def findPartitions(toSplit: Set[CubeWithCount]): List[CubeWithCount] = {
     val boundingCube: DBScanCube = findBoundingCube(toSplit)
     def pointsIn: DBScanCube => Int = pointsInCube(toSplit, _: DBScanCube)
-    val toPartition: List[(DBScanCube, Int)] = List((boundingCube, pointsIn(boundingCube)))
-    println(s"toPartition is ${toPartition}")
-    val patitioned: List[(DBScanCube, Int)] = List[CubeWithCount]()
+    val toPartition=List((boundingCube, pointsIn(boundingCube)))
+    val patitioned=List[CubeWithCount]()
     println("About to start partitioning...")
     val partitions: List[(DBScanCube, Int)] = partition(toPartition, patitioned, pointsIn)
     println("the Partitions are below:")
     partitions.foreach(println)
+    var summax:Int = 0
+    var summin:Int = Int.MaxValue
+    for ((_,sum)<-partitions) {  //new_partition
+      if(sum>summax) summax = sum
+      if(sum<summin) summin = sum
+    }
+    println("points in partion max-min: ",summax-summin)
     println("Partitioning Done")
+
     partitions.filter({
       case (_, count) => count > 0
     })
   }
 }
-
