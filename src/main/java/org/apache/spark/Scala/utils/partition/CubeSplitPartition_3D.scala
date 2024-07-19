@@ -21,20 +21,19 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
 
   def getSplits(): List[Set[DBScanCube]] = {
     val pointOfCube: Set[(Int, DBScanCube, Int)] = getCube(points,x_bounding,y_bounding,t_bounding)
-
+    println("-----------------------------------------------------------------")
+    println("-------------------------Get Cube DONE-----------------------------------")
     val cellGraph: Graph = getCellGraph(pointOfCube,x_bounding,y_bounding,t_bounding)
-    println("cube graph vertices",cellGraph.vertices.size,"edges",cellGraph.edges.size)
-    println("About to start partitioning...")
+    println("-----------------------------------------------------------------")
+    println("--------------------------Get Graph DONE---------------------------------")
     val partitions = getPartition(points.size, pointOfCube,cellGraph,maxPointsPerPartition, load_balance_alpha)
     // Greedy method
 //    val temp = points.size / maxPointsPerPartition
 //    val partitions = getGreedyPartition(pointOfCube, cellGraph, temp,  maxPointsPerPartition)
-    println("the Partitions are below:")
-    partitions.foreach(println)
-    println("Partitioning Done")
-    println("partitions size",partitions.size)
-    println("Partitioning Done")
+    println("-----------------------------------------------------------------")
+    println("-----------------------------Get Partition DONE------------------------------------")
     partitions
+
   }
 
 
@@ -75,7 +74,7 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
             else loop.break()
           }
         }
-        println("cubes",cubelist.size,"points",sum)
+
         cubepartition = cubelist :: cubepartition
       }
     }
@@ -129,13 +128,13 @@ case class CubeSplitPartition_3D(points:Array[DBScanPoint_3D], x_bounding: Doubl
             sum += count
         }
       }
-      print(sum,"")
+
       if(sum>summax) summax = sum
       if(sum<summin) summin = sum
       sum = 0
       cubepartition = cubelist :: cubepartition
     }
-    println("points in partion max-min: ",summax-summin)
+
     cubepartition
   }
 }

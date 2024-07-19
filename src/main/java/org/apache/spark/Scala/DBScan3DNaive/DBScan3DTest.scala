@@ -18,8 +18,8 @@ object DBScan3DTest {
 //      .set("spark.driver.maxResultSize", "10g")
 //      .set("spark.driver.memory", "6g")
       .setAppName("DBscan_3D")
-      .setMaster("local[*]") // 在本地模拟运行
-      //.setMaster("spark://10.242.6.19:7077") // 在分布式集群中运行
+      //.setMaster("local[*]") // 在本地模拟运行
+      .setMaster("spark://10.242.6.19:7077") // 在分布式集群中运行
     val sparkContext: SparkContext = new SparkContext(conf)
 
     val fileProcess: FileProcess = FileProcess()
@@ -65,7 +65,9 @@ object DBScan3DTest {
 
     val endTime = System.currentTimeMillis()
     val total = endTime - startTime
+    println("-----------------------------------------------------------------")
     println(s"Total Time Cost: $total")
+
     //DBScanRes.labeledPoints.coalesce(1).sortBy(x => x.cluster).saveAsTextFile(args(1))
     DBScanRes.labeledPoints._1.coalesce(1).sortBy(x => x.cluster).saveAsTextFile(args(1))
     sparkContext.stop()

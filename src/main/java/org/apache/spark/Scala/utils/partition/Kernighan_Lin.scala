@@ -125,17 +125,16 @@ case class Kernighan_Lin(totalPoints: Int, pointofCube:Set[(Int, DBScanCube, Int
   def print_partion_weight(partitions:mutable.Map[Int, mutable.Set[Int]]): Unit ={
     var sumAll = 0.0
     for (i <- 0 until partitions.size) {
-      print(s"\nPartition $i : ")
+
       var sum = 0.0
       for (node <- partitions(i)) {
         print(node + " ")
         sum += sumWeights(partitions(i).toSet, node)
       }
-      println(s"internal weight part $sum")
+
       sumAll += sum
     }
-    println(s"internal weight ${ sumAll }")
-    println(s"external weight ${weightsum - sumAll}")
+
   }
 
   def points_in_partition(partition:mutable.Set[Int]): Int ={
@@ -215,7 +214,7 @@ case class Kernighan_Lin(totalPoints: Int, pointofCube:Set[(Int, DBScanCube, Int
         done = isDone
       }
     }
-    println("In partition 2....")
+
     // 加上分区点数限制，对点数大于上限的分区进行拆分，以及对点数小于下限的分区进行合并
     val partitions_points = mutable.Map[Int, (mutable.Set[Int],Int)]()
     for ((index , nodes) <- partitions){
@@ -224,9 +223,9 @@ case class Kernighan_Lin(totalPoints: Int, pointofCube:Set[(Int, DBScanCube, Int
     val basePointsPerPartition = totalPoints / k
     val maxPointsPerPartition = (basePointsPerPartition * (1.0D + load_balance_alpha)).toInt
     val minPointsPerPartition = (basePointsPerPartition * (1.0D - load_balance_alpha)).toInt
-    println("maxPointsPerPartition",maxPointsPerPartition,"minPointsPerPartition",minPointsPerPartition)
+
     val new_partition = split_merge(partitions_points,maxPointsPerPartition,minPointsPerPartition)
-    print("\nAfter split_merge")
+
     print_partion_weight(new_partition)
     // 返回最终分区结果
     var cubepartition: List[Set[DBScanCube]] = List()
@@ -243,13 +242,13 @@ case class Kernighan_Lin(totalPoints: Int, pointofCube:Set[(Int, DBScanCube, Int
         }
       }
       cubepartition = cubelist :: cubepartition
-      print(sum,"")
+
       if(sum>summax) summax = sum
       if(sum<summin) summin = sum
       cubelist = Set()
       sum = 0
     }
-    println("points in partion max-min: ",summax-summin)
+
     cubepartition
   }
 }
