@@ -48,7 +48,7 @@ object DBScan3DTest {
       Vectors.dense(Array(x._1, x._2, x._3))
     })
     println(args(2))
-    val distanceEps: Double = args(2).toDouble
+    val distanceEps: Double = args(2).toDouble / 10
     // new dimension: time dimension
     val timeEps: Double = args(3).toDouble
     val minPoints: Int = args(4).toInt

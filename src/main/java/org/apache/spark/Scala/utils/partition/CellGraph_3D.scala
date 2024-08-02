@@ -24,6 +24,7 @@ case class CellGraph_3D(pointOfCube:Set[(Int, DBScanCube, Int)],x_bounding: Doub
 
 
   def getGraph(): Graph={
+    val functionTimeBegin = System.currentTimeMillis()
     var vertices: mutable.SortedSet[Int] = mutable.SortedSet()
     var edges: mutable.Map[(Int, Int), Double] = mutable.Map()
     // 存储每个 Cube 的邻居
@@ -51,6 +52,10 @@ case class CellGraph_3D(pointOfCube:Set[(Int, DBScanCube, Int)],x_bounding: Doub
     }
     //不可变映射
     val immutableEdges = edges.toMap
+    val functionTimeEnd = System.currentTimeMillis()
+    val cost = functionTimeBegin - functionTimeEnd
+    println("-----------------------------------------------------------------")
+    println(s"----------------Function getGraph() cost: {$cost}---------------------------------------")
     Graph(vertices, immutableEdges)
   }
 }

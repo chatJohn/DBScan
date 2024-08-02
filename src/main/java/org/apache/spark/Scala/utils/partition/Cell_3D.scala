@@ -45,6 +45,7 @@ case class Cell_3D(points:Array[DBScanPoint_3D], x_bounding: Double, y_bounding:
     doSplitWithBounding(boundingCube, x_bounding, y_bounding, t_bounding)
   }
   def doSplitWithBounding(originCube: DBScanCube, x_bounding: Double, y_bounding: Double, t_bounding: Double): Set[(Int, DBScanCube, Int)] = {
+    val functionTimeBegin = System.currentTimeMillis()
     val x_split = (originCube.x until originCube.x2 by x_bounding).toList :+ originCube.x2
     val y_split = (originCube.y until originCube.y2 by y_bounding).toList :+ originCube.y2
     val t_split = (originCube.t until originCube.t2 by t_bounding).toList :+ originCube.t2
@@ -71,6 +72,10 @@ case class Cell_3D(points:Array[DBScanPoint_3D], x_bounding: Double, y_bounding:
         (index, cube, count)
       }
     })
+    val functionTimeEnd = System.currentTimeMillis()
+    val cost = functionTimeBegin - functionTimeEnd
+    println("-----------------------------------------------------------------")
+    println(s"----------------Function doSplitWithBounding() cost: {$cost}---------------------------------------")
     IndexCube
   }
 }

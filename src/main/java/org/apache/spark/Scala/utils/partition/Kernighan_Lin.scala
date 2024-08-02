@@ -192,6 +192,7 @@ case class Kernighan_Lin(totalPoints: Int, pointofCube:Set[(Int, DBScanCube, Int
 
 
   def KLresult(): List[Set[DBScanCube]] = {
+    val funtionTimeBegin = System.currentTimeMillis()
     // 初始化分区
     val partitions = mutable.Map[Int, mutable.Set[Int]]()
     val k = PointsPerPartition
@@ -248,7 +249,10 @@ case class Kernighan_Lin(totalPoints: Int, pointofCube:Set[(Int, DBScanCube, Int
       cubelist = Set()
       sum = 0
     }
-
+    val funtionTimeEnd = System.currentTimeMillis()
+    val cost = funtionTimeBegin - funtionTimeEnd
+    println("-----------------------------------------------------------------")
+    println(s"----------------Function KLresult() cost: {$cost}---------------------------------------")
     cubepartition
   }
 }

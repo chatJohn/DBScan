@@ -44,7 +44,7 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
     (labeledPartitionedPoints.values, labeledPartitionedPoints.count()) // all labeled points in working space after implementing the DBScan
   }
   def findAdjacencies(partitions: Iterable[(Int, DBScanLabeledPoint_3D)]): Set[((Int, Int), (Int, Int))] = {
-
+    val funtionTimeBegin = System.currentTimeMillis()
     val zero = (Map[DBScanPoint_3D, ClusterID](), Set[(ClusterID, ClusterID)]())
     val partitionsMap: Map[Int, DBScanLabeledPoint_3D] = partitions.toMap
     val (_, adjacencies) = partitions.foldLeft(zero)({
@@ -80,6 +80,10 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
 
       }
     })
+    val functionTimeEnd = System.currentTimeMillis()
+    val cost = funtionTimeBegin - functionTimeEnd
+    println("-----------------------------------------------------------------")
+    println(s"----------------Function findAdjacencies() cost: {$cost}---------------------------------------")
     adjacencies
   }
 
@@ -142,19 +146,20 @@ class DBScan3D_CubeSplit private(val distanceEps: Double,
       }
     }
 
-
     val duplicatedCount: Long = duplicated.count()
 
 
     val numberOfPartitions: Int = localPartitions.size
     println("-----------------------------------------------------------------")
+    val localDBScanTimeBegin = System.currentTimeMillis()
     val clustered: RDD[(Int, DBScanLabeledPoint_3D)] = duplicated
-      .groupByKey(numberOfPartitions) // param: numPartitions, parallel number
-      .filter(x => x._2 != null).flatMapValues((points: Iterable[DBScanPoint_3D]) => {
-
+      .groupByKey()
+      .flatMapValues((points: Iterable[DBScanPoint_3D]) => {
         new LocalDBScan_3D(distanceEps, timeEps, minPoints).fit(points)
       }) // different partition has different clustering
-    println("------------------Local DBSCAN DONE-------------------------------")
+    val localDBScanTimeEnd = System.currentTimeMillis()
+    val localDBScanTimeCost = localDBScanTimeBegin - localDBScanTimeEnd
+    println(s"------------------Local DBSCAN DONE, time cost: {$localDBScanTimeCost}------------------------------")
 
 
     val marginPoints: RDD[(Int, Iterable[(Int, DBScanLabeledPoint_3D)])] = clustered.flatMap({
